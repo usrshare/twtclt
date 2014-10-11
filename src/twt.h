@@ -1,11 +1,20 @@
 #include <oauth.h>
 #include <stdint.h>
+#include <search.h>
+#include <complex.h>
 
 #ifndef _TWT_H_
 #define _TWT_H_
 
+#define s_eq(x,y) (strcmp(x,y) == 0)
+
+#define MAXTWEETLEN 140 //this header line © sabajo @ #geekissues @ irc.efnet.org  
+
 uint16_t acct_n; //known accounts
 struct t_account** acctlist; //acct list.
+
+struct hashtable* tweetht; //tweet cache hash table.
+struct hashtable* userht; //user cache hash table.
 
 struct t_account {
 	//this structure refers to twitter log-in accounts
@@ -15,21 +24,106 @@ struct t_account {
 	char* tsct; //token secret
 	int auth; //is authorized(access token) or not(req token)?
 };
-
 struct t_timeline {
 	struct t_timeline* next;
 };
-
-struct t_tweet {
-	char* author;
-	char* contents;
+struct t_contributor {
+	uint64_t id;
+	char screen_name[16];
 };
+struct t_tweet {
+	struct t_account* acct;
+	char* created_at; //should be time
+	uint64_t id;
+	char* text;
+	char* source;
+	int truncated; //do we need that?
+	uint64_t in_reply_to_status_id;
+	uint64_t in_reply_to_user_id;
+	char in_reply_to_screen_name[16];
+	//struct t_user* user;
+	uint64_t user_id; // not an actual field.
+	//geo;
+	double complex coordinates; // real = long, imag = lat.
+	struct t_place* place;
+	struct t_contributor** contributors;
+	uint64_t retweeted_status_id;
+	uint64_t retweet_count;
+	uint64_t favorite_count;
+	struct t_entity** entities;
+	int favorited;
+	int retweeted;
+	char* lang;
+	int possibly_sensitive;
+	int perspectival;
+};
+struct t_user {
+	int contributors_enabled;
+	char* created_at;
+	int default_profile;
+	int default_profile_image;
+	char* description;
+	struct t_entity** entities;
+	uint64_t favorites_count;
+	int follow_request_sent;
+	int following;
+	uint32_t followers_count;
+	uint32_t friends_count;
+	int geo_enabled;
+	uint64_t id;
+	int is_translator;
+	char* lang;
+	uint64_t listed_count;
+	char* location;
+	char* name;
+	int protected_; //not the C++ keyword
+	char screen_name[16];
+	int show_all_inline_media;
+	int status_tweet_id;
+	uint64_t statuses_count;
+	char* time_zone;
+	char* url;
+	int32_t utc_offset;
+	int verified;
+	char* withheld_in_countries;
+	char withheld_scope[7];
+	int perspectival;
+};
+
+enum timelinetype {
+	home,
+	user,
+	mentions,
+};
+
+enum collision_behavior {
+	no_replace,
+	replace,
+};
+
+int initStructures();
 
 struct t_account* newAccount();
 
 void destroyAccount(struct t_account* acct);
 
 // oAuth authorization process here
+int inithashtables();
+
+int tht_insert(struct t_tweet* tweet, enum collision_behavior cbeh);
+int tht_delete(uint64_t id);
+struct t_tweet* tht_search(uint64_t id);
+
+int uht_insert(struct t_user* user, enum collision_behavior cbeh);
+int uht_delete(uint64_t id);
+struct t_user* uht_search(uint64_t id);
+
+struct t_tweet* tweetdup(struct t_tweet* orig);
+struct t_user* userdup(struct t_user* orig);
+void tweetdel(struct t_tweet* ptr);
+void userdel(struct t_user* ptr);
+
+
 
 int request_token(struct t_account* acct);
 int authorize(struct t_account* acct, char** url);
@@ -38,8 +132,10 @@ int oauth_verify(struct t_account* acct, int pin);
 int add_acct(struct t_account* acct);
 int del_acct(struct t_account* acct);
 
-int save_accounts();
+int load_timeline(struct t_account* acct);
+int load_timeline_ext(struct t_account* acct, enum timelinetype tt, int since_id, int max_id, int trim_user, int exclude_replies, int contributor_details, int include_entities);
 
+int save_accounts();
 int load_accounts();
 
 #endif

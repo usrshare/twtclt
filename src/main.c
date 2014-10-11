@@ -23,6 +23,8 @@ int addAccount() {
 
 int main(int argc, char* argv[])
 {
+	inithashtables();
+
 	acct_n = 0;
 	int r = load_accounts();
 	if (r != 0) { printf("load_accounts returned %d\n",r); return 1;}
@@ -30,6 +32,8 @@ int main(int argc, char* argv[])
 	if (acct_n == 0) addAccount();
 
 	printf("%d accounts loaded.\n",acct_n);
+
+	load_timeline(acctlist[0]);
 
 	save_accounts();
 

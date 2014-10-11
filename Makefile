@@ -1,8 +1,9 @@
 CC=gcc
-CFLAGS=-std=gnu99
+CFLAGS=-std=gnu99 -Wno-deprecated-declarations
 DFLAGS=-g
 LIBS=-lncursesw -lcurl -loauth -ljson-c
 CTAGS=ctags -R .
+OBJS=main.o twt.o hashtable.o
 
 all: twt
 
@@ -12,8 +13,8 @@ tags: src/*.c src/*.h
 %.o: src/%.c
 	$(CC) -c -o $@ $< $(CFLAGS) $(DFLAGS)
 
-twt: main.o twt.o
-	$(CC) main.o twt.o -o twt $(DFLAGS) $(LIBS)
+twt: $(OBJS)
+	$(CC) $(OBJS) -o twt $(DFLAGS) $(LIBS)
 
 clean:
 	rm *.o twt
