@@ -1,7 +1,7 @@
 CC=gcc
-CFLAGS=-std=gnu99 -Wno-deprecated-declarations
+CFLAGS=-std=gnu99 -Wno-deprecated-declarations $(shell ncursesw5-config --cflags)
 DFLAGS=-g
-LIBS=-lncursesw -lcurl -loauth -ljson-c -pthread
+LIBS= $(shell ncursesw5-config --libs) -lcurl -loauth -ljson-c -pthread
 CTAGS=ctags -R .
 OBJS=main.o twt.o hashtable.o btree.o ui.o
 
