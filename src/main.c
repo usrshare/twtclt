@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include "twt.h"
+#include "ui.h"
 
 int addAccount() {
 
@@ -31,7 +32,11 @@ void print_tweet(uint64_t id, void* ctx) {
 		struct t_user* u = uht_search(t->user_id);
 		if (u != NULL) usn=u->screen_name; else usn = "(unknown)";
 
+		
+
 		printf("%16s | %s\n",usn,t->text);
+
+		userdel(u);
 
 	} else printf("(null for some reason)\n");
 
@@ -51,11 +56,15 @@ int main(int argc, char* argv[])
 
 	printf("%d accounts loaded.\n",acct_n);
 
+	init_ui();
+
 	load_timeline(acctlist[0]);
 
-	bt_read(acctlist[0]->timelinebt,print_tweet,NULL,desc);
+	//bt_read(acctlist[0]->timelinebt,print_tweet,NULL,desc);
 
 	save_accounts();
+
+	destroy_ui();
 
 	return 0;
 }

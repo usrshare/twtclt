@@ -1,9 +1,9 @@
 CC=gcc
 CFLAGS=-std=gnu99 -Wno-deprecated-declarations
 DFLAGS=-g
-LIBS=-lncursesw -lcurl -loauth -ljson-c
+LIBS=-lncursesw -lcurl -loauth -ljson-c -pthread
 CTAGS=ctags -R .
-OBJS=main.o twt.o hashtable.o btree.o
+OBJS=main.o twt.o hashtable.o btree.o ui.o
 
 all: twt
 
