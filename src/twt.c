@@ -26,18 +26,33 @@ const char twt_strm[] = ""; //streaming url
 int inithashtables(){
 	tweetht = ht_create(1024);
 	userht = ht_create(256);
+
 	return 0;
 }
 
 int tht_insert(struct t_tweet* tweet, enum collision_behavior cbeh){
 	struct t_tweet* new = tweetdup(tweet);
 
-	int r = ht_insert(tweetht,tweet->id,new);
-	if ((cbeh == replace) && (r == 2)) {
+	int r = ht_insert(tweetht,tweet->id,new); if (r != 0) free(new);
+	if ( r == 2) {
+
+		if (cbeh == no_replace) return 2;
+
+		if (cbeh == update) {
+			struct t_tweet* old = tht_search(tweet->id);
+			if ((tweet->perspectival >= old->perspectival) && (tweet->retrieved_on < old->retrieved_on)) return 2; //tweet already in ht is better than one we have here.
+			tweetdel(old);
+
+		}
+
+		r = tht_delete(tweet->id); if (r != 0) printf("Error while deleting old tweet to replace with new.\n");
+		r = tht_insert(tweet,no_replace); if (r != 0) printf("Error while replacing tweet.\n");
+
+
 
 		//TODO replace existing tweet with new
 
-	} else {if (r != 0) free(new); return r;}
+	} else return r;
 }
 
 int tht_delete(uint64_t id){
@@ -141,6 +156,9 @@ struct t_account* newAccount() {
 	na->tkey = NULL;
 	na->tsct = NULL;
 	na->auth = 0;
+	na->timelinebt = bt_create();
+	na->userbt = bt_create();
+	na->mentionbt = bt_create();
 	return na;
 }
 void destroyAccount(struct t_account* acct){
@@ -370,12 +388,13 @@ uint64_t parse_json_user(struct t_account* acct, json_object* user, int perspect
 		// else	printf("unparsed user field %s\n", fn);
 
 		nu.perspectival = perspectival;
+		nu.retrieved_on = time(NULL); 
 
 		json_object_iter_next(&it_c);
 
 	}
 
-	printf("Parsed user %lld.\n",id);
+	//printf("Parsed user %lld.\n",id);
 
 	uht_insert(&nu,no_replace);
 
@@ -420,16 +439,18 @@ uint64_t parse_json_tweet(struct t_account* acct, json_object* tweet, int perspe
 		if (s_eq(fn,"source")) nt.source = strdup(json_object_get_string(fv)); else
 		if (s_eq(fn,"created_at")) nt.created_at = strdup(json_object_get_string(fv));
 		
-		else printf("unparsed tweet field %s\n", fn);
+		//else printf("unparsed tweet field %s\n", fn);
 
 		nt.perspectival = perspectival;
+		nt.retrieved_on = time(NULL); 
 
 		json_object_iter_next(&it_c);
 
 	}
 
-	printf("Parsed tweet %lld.\n",id);
+	//printf("Parsed tweet %lld.\n",id);
 	tht_insert(&nt,no_replace);
+	return id;
 }
 
 int parse_timeline(struct t_account* acct, enum timelinetype tt, char* timelinereply) {
@@ -455,6 +476,8 @@ int parse_timeline(struct t_account* acct, enum timelinetype tt, char* timeliner
 	for (int i=0; i<tla_len; i++) {
 		json_object* tweet = json_object_array_get_idx(timeline,i);
 		uint64_t tweet_id = parse_json_tweet(acct,tweet,0);
+		printf("Adding tweet %lld to timeline...\n",tweet_id);
+		bt_insert(acct->timelinebt,tweet_id);
 	}
 
 	json_tokener_free(jt);

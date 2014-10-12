@@ -3,7 +3,7 @@ CFLAGS=-std=gnu99 -Wno-deprecated-declarations
 DFLAGS=-g
 LIBS=-lncursesw -lcurl -loauth -ljson-c
 CTAGS=ctags -R .
-OBJS=main.o twt.o hashtable.o
+OBJS=main.o twt.o hashtable.o btree.o
 
 all: twt
 

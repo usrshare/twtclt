@@ -2,6 +2,9 @@
 #include <stdint.h>
 #include <search.h>
 #include <complex.h>
+#include <time.h>
+#include "hashtable.h"
+#include "btree.h"
 
 #ifndef _TWT_H_
 #define _TWT_H_
@@ -16,6 +19,10 @@ struct t_account** acctlist; //acct list.
 struct hashtable* tweetht; //tweet cache hash table.
 struct hashtable* userht; //user cache hash table.
 
+struct btree* tweetbt; //tweet ID binary tree.
+struct btree* userbt; //tweet ID binary tree.
+
+
 struct t_account {
 	//this structure refers to twitter log-in accounts
 	char* name; //acct screen name
@@ -23,6 +30,9 @@ struct t_account {
 	char* tkey; //token key
 	char* tsct; //token secret
 	int auth; //is authorized(access token) or not(req token)?
+	struct btree* timelinebt; //timeline btree.
+	struct btree* userbt; //user btree.
+	struct btree* mentionbt; //mention btree.
 };
 struct t_timeline {
 	struct t_timeline* next;
@@ -56,6 +66,7 @@ struct t_tweet {
 	char* lang;
 	int possibly_sensitive;
 	int perspectival;
+	time_t retrieved_on;
 };
 struct t_user {
 	int contributors_enabled;
@@ -88,6 +99,7 @@ struct t_user {
 	char* withheld_in_countries;
 	char withheld_scope[7];
 	int perspectival;
+	time_t retrieved_on;
 };
 
 enum timelinetype {
@@ -99,6 +111,7 @@ enum timelinetype {
 enum collision_behavior {
 	no_replace,
 	replace,
+	update, //replaces non-perspectival data with perspectival, and newer data with older.
 };
 
 int initStructures();
