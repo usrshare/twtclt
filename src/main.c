@@ -21,6 +21,24 @@ int addAccount() {
 		return 0;
 }
 
+void print_tweet(uint64_t id, void* ctx) {
+
+	struct t_tweet* t = tht_search(id);
+
+	if (t != NULL) {
+
+		char* usn;
+		struct t_user* u = uht_search(t->user_id);
+		if (u != NULL) usn=u->screen_name; else usn = "(unknown)";
+
+		printf("%16s | %s\n",usn,t->text);
+
+	} else printf("(null for some reason)\n");
+
+	tweetdel(t);
+
+}
+
 int main(int argc, char* argv[])
 {
 	inithashtables();
@@ -34,6 +52,8 @@ int main(int argc, char* argv[])
 	printf("%d accounts loaded.\n",acct_n);
 
 	load_timeline(acctlist[0]);
+
+	bt_read(acctlist[0]->timelinebt,print_tweet,NULL,desc);
 
 	save_accounts();
 

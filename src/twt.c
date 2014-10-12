@@ -45,10 +45,10 @@ int tht_insert(struct t_tweet* tweet, enum collision_behavior cbeh){
 
 		}
 
-		r = tht_delete(tweet->id); if (r != 0) printf("Error while deleting old tweet to replace with new.\n");
-		r = tht_insert(tweet,no_replace); if (r != 0) printf("Error while replacing tweet.\n");
+		r = tht_delete(tweet->id); if (r != 0) { printf("Error while deleting old tweet to replace with new.\n"); return 1; }
+		r = tht_insert(tweet,no_replace); if (r != 0) { printf("Error while replacing tweet.\n"); return 1;}
 
-
+		return 0;
 
 		//TODO replace existing tweet with new
 
@@ -89,6 +89,7 @@ struct t_user* uht_search(uint64_t id){
 // tweet and user hashtable functions END
 
 struct t_tweet* tweetdup(struct t_tweet* orig) {
+	if (orig == NULL) return NULL;
 	struct t_tweet* new = malloc(sizeof(struct t_tweet));
 	*new = *orig; //copy all values
 	if (orig->created_at) new->created_at = strdup(orig->created_at);
@@ -99,6 +100,7 @@ struct t_tweet* tweetdup(struct t_tweet* orig) {
 }
 
 struct t_user* userdup(struct t_user* orig) {
+	if (orig == NULL) return NULL;
 	struct t_user* new = malloc(sizeof(struct t_user));
 	*new = *orig; //copy all values
 	if (orig->created_at) new->created_at = strdup(orig->created_at);
@@ -337,7 +339,7 @@ uint64_t parse_json_user(struct t_account* acct, json_object* user, int perspect
 
 	const char* fn; json_object* fv; enum json_type ft; struct t_user nu;
 
-	nu.created_at = nu.description = nu.lang = nu.location = nu.name = nu.time_zone = nu.url = nu.withheld_in_countries = NULL;
+	memset(&nu,'\0',sizeof nu);
 
 	while (!json_object_iter_equal(&it_c,&it_e)) {
 
@@ -396,7 +398,7 @@ uint64_t parse_json_user(struct t_account* acct, json_object* user, int perspect
 
 	//printf("Parsed user %lld.\n",id);
 
-	uht_insert(&nu,no_replace);
+	int r = uht_insert(&nu,no_replace); if (r != 0) printf("uht_insert tweet returned %d\n",r);
 
 	return id;
 }
@@ -410,7 +412,7 @@ uint64_t parse_json_tweet(struct t_account* acct, json_object* tweet, int perspe
 
 	const char* fn; json_object* fv; enum json_type ft; struct t_tweet nt;
 
-	nt.created_at = nt.text = nt.source = nt.lang = NULL;
+	memset(&nt,'\0',sizeof nt);
 
 	while (!json_object_iter_equal(&it_c,&it_e)) {
 
@@ -449,7 +451,7 @@ uint64_t parse_json_tweet(struct t_account* acct, json_object* tweet, int perspe
 	}
 
 	//printf("Parsed tweet %lld.\n",id);
-	tht_insert(&nt,no_replace);
+	int r = tht_insert(&nt,no_replace); if (r != 0) printf("tht_insert tweet returned %d\n",r);
 	return id;
 }
 
@@ -476,7 +478,7 @@ int parse_timeline(struct t_account* acct, enum timelinetype tt, char* timeliner
 	for (int i=0; i<tla_len; i++) {
 		json_object* tweet = json_object_array_get_idx(timeline,i);
 		uint64_t tweet_id = parse_json_tweet(acct,tweet,0);
-		printf("Adding tweet %lld to timeline...\n",tweet_id);
+		//printf("Adding tweet %lld to timeline...\n",tweet_id);
 		bt_insert(acct->timelinebt,tweet_id);
 	}
 

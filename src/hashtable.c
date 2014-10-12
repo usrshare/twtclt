@@ -40,6 +40,7 @@ int ht_insert(struct hashtable* ht, uint64_t key, void* value) {
 	}
 
 	hi->next = new;
+	return 0;
 }
 
 void* ht_search(struct hashtable* ht, uint64_t key) {

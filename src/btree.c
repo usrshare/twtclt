@@ -79,3 +79,19 @@ int bt_remove(struct btree* bt, uint64_t id) {
 		return bt_plug(bt,branch);
 	}
 }
+
+int bt_read(struct btree* bt, btree_cb cb, void* ctx, enum bt_direction dir) {
+	if (bt == NULL) return 0;
+	 switch(dir) {
+		 case asc:
+		 bt_read(bt->l,cb,ctx,dir);
+		 cb(bt->id,ctx);
+		 bt_read(bt->r,cb,ctx,dir);
+		 break;
+		 case desc:
+		 bt_read(bt->r,cb,ctx,dir);
+		 cb(bt->id,ctx);
+		 bt_read(bt->l,cb,ctx,dir);
+		 break;
+	 }
+}
