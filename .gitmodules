@@ -1,0 +1,3 @@
+[submodule "libmojibake"]
+	path = libmojibake
+	url = git@github.com:JuliaLang/libmojibake.git

@@ -3,10 +3,11 @@
 #include <string.h>
 #include <errno.h>
 #include <curl/curl.h>
-#include <json-c/json.h>
+#include <time.h>
 #include "twitter.h"
 #include "hashtable.h"
 #include "stringex.h"
+#include "twt_time.h"
 
 #define infree(x) if(x) free(x);
 
@@ -55,7 +56,6 @@ int tht_insert(struct t_tweet* tweet, enum collision_behavior cbeh){
 
 	} else return r;
 }
-
 int tht_delete(uint64_t id){
 	struct t_tweet* old = (struct t_tweet*)ht_search(tweetht,id);
 	if (old != NULL) tweetdel(old);
@@ -76,7 +76,6 @@ int uht_insert(struct t_user* user, enum collision_behavior cbeh){
 
 	} else {if (r != 0) free(new); return r;}
 }
-
 int uht_delete(uint64_t id){
 	struct t_user* old = (struct t_user*)ht_search(userht,id);
 	if (old != NULL) userdel(old);
@@ -88,26 +87,22 @@ struct t_user* uht_search(uint64_t id){
 }
 
 // tweet and user hashtable functions END
-
 struct t_tweet* tweetdup(struct t_tweet* orig) {
 	if (orig == NULL) return NULL;
 	struct t_tweet* new = malloc(sizeof(struct t_tweet));
 	*new = *orig; //copy all values
-	if (orig->created_at) new->created_at = strdup(orig->created_at);
 	if (orig->text) new->text = strdup(orig->text);
 	if (orig->source) new->source = strdup(orig->source);
-	if (orig->lang) new->lang = strdup(orig->lang);
+	//if (orig->lang) new->lang = strdup(orig->lang);
 	return new;
 }
-
 struct t_user* userdup(struct t_user* orig) {
 	if (orig == NULL) return NULL;
 	struct t_user* new = malloc(sizeof(struct t_user));
 	*new = *orig; //copy all values
-	if (orig->created_at) new->created_at = strdup(orig->created_at);
 	if (orig->description) new->description = strdup(orig->description);
 	if (orig->location) new->location = strdup(orig->location);
-	if (orig->lang) new->lang = strdup(orig->lang);
+	//if (orig->lang) new->lang = strdup(orig->lang);
 	if (orig->name) new->name = strdup(orig->name);
 	if (orig->time_zone) new->time_zone = strdup(orig->time_zone);
 	if (orig->url) new->url = strdup(orig->url);
@@ -116,18 +111,15 @@ struct t_user* userdup(struct t_user* orig) {
 }
 
 void tweetdel(struct t_tweet* ptr) {
-	free(ptr->created_at);
 	free(ptr->text);
 	free(ptr->source);
-	free(ptr->lang);
+	//free(ptr->lang);
 	free(ptr);
 }
-
 void userdel(struct t_user* ptr) {
-	free(ptr->created_at);
 	free(ptr->description);
 	free(ptr->location);
-	free(ptr->lang);
+	//free(ptr->lang);
 	free(ptr->name);
 	free(ptr->time_zone);
 	free(ptr->url);
@@ -204,7 +196,6 @@ int request_token(struct t_account* acct) {
 
 	return 0;
 }
-
 int authorize(struct t_account* acct, char** url) {
 	// STEP 2 of oauth process. Return a URL which should be opened in the browser to get the PIN.
 	if (acct->auth == 1) {
@@ -224,7 +215,6 @@ int authorize(struct t_account* acct, char** url) {
 
 	return 0; //TODO
 }
-
 int oauth_verify(struct t_account* acct, int pin) {
 	char* verify_url = malloc(strlen(twt_apin) + 7 + 1);
 	if ((pin < 0) || (pin > 9999999)) {
@@ -311,14 +301,80 @@ int json_object_get_nullbool(json_object* obj) {
 	if (json_object_get_type(obj) == 0) return -1;
 	return json_object_get_boolean(obj);
 }
+// these are helper functions for parse_json_user and parse_json tweet created so that indentation won't break.
+int fill_json_user_fields(struct t_user* nu, enum json_type ft, const char* fn, json_object* fv) {
+	if (s_eq(fn,"id")) nu->id = json_object_get_int64(fv); return 0;
+	if (s_eq(fn,"id_str")) return 0;
+	if (s_eq(fn,"screen_name") && ft) strncpy(nu->screen_name,json_object_get_string(fv),16); return 0;
+	if (s_eq(fn,"followers_count")) nu->followers_count = json_object_get_int64(fv); return 0;
+	if (s_eq(fn,"friends_count")) nu->friends_count = json_object_get_int64(fv); return 0;
+	if (s_eq(fn,"protected")) nu->protected_ = json_object_get_nullbool(fv); return 0;
+	if (s_eq(fn,"geo_enabled")) nu->geo_enabled = json_object_get_nullbool(fv); return 0;
+	if (s_eq(fn,"verified")) nu->verified = json_object_get_nullbool(fv); return 0;
+	if (s_eq(fn,"contributors_enabled")) nu->contributors_enabled = json_object_get_nullbool(fv); return 0;
+	if (s_eq(fn,"following")) nu->following = json_object_get_nullbool(fv); return 0;
+	if (s_eq(fn,"follow_request_sent")) nu->follow_request_sent = json_object_get_nullbool(fv); return 0;
+	if (s_eq(fn,"is_translator")) nu->is_translator = json_object_get_nullbool(fv); return 0;
+	if (s_eq(fn,"is_translation_enabled")) return 0;
+	if (s_eq(fn,"favourites_count")) nu->favorites_count = json_object_get_int64(fv); return 0;
+	if (s_eq(fn,"listed_count")) nu->listed_count = json_object_get_int64(fv); return 0;
+	if (s_eq(fn,"followers_count")) nu->followers_count = json_object_get_int64(fv); return 0;
+	if (s_eq(fn,"friends_count")) nu->friends_count = json_object_get_int64(fv); return 0;
+	if (s_eq(fn,"statuses_count")) nu->statuses_count = json_object_get_int64(fv); return 0;
+	if (s_eq(fn,"utc_offset")) nu->utc_offset = json_object_get_int(fv); return 0;
+	if (s_eq(fn,"name")) nu->name = strdup(json_object_get_string(fv)); return 0;
+	if (s_eq(fn,"created_at")) nu->created_at = gettweettime(json_object_get_string(fv)); return 0;
+	if (s_eq(fn,"location")) nu->location = strdup(json_object_get_string(fv)); return 0;
+	if (s_eq(fn,"description")) nu->description = strdup(json_object_get_string(fv)); return 0;
+	if (s_eq(fn,"url")) { if (fv) nu->url = strdup(json_object_get_string(fv)); } return 0;
+	if (s_eq(fn,"default_profile")) return 0;
+	if (s_eq(fn,"default_profile_image")) return 0;
+	if (s_eq(fn,"profile_background_color")) return 0;
+	if (s_eq(fn,"profile_background_color")) return 0;
+	if (s_eq(fn,"profile_background_image_url")) return 0;
+	if (s_eq(fn,"profile_background_image_url_https")) return 0;
+	if (s_eq(fn,"profile_background_tile")) return 0;
+	if (s_eq(fn,"profile_banner_url")) return 0;
+	if (s_eq(fn,"profile_image_url")) return 0;
+	if (s_eq(fn,"profile_image_url_https")) return 0;
+	if (s_eq(fn,"profile_link_color")) return 0;
+	if (s_eq(fn,"profile_sidebar_border_color")) return 0;
+	if (s_eq(fn,"profile_sidebar_fill_color")) return 0;
+	if (s_eq(fn,"profile_sidebar_text_color")) return 0;
+	if (s_eq(fn,"profile_use_background_image")) return 0;
+	if (s_eq(fn,"profile_text_color")) {}
+	return 1;
+
+}
+int fill_json_tweet_fields(struct t_tweet* nt, enum json_type ft, const char* fn, json_object* fv) {
+	if (s_eq(fn,"id")) nt->id = json_object_get_int64(fv); return 0;
+	if (s_eq(fn,"id_str")) {} return 0;
+	if (s_eq(fn,"in_reply_to_status_id")) nt->in_reply_to_status_id = json_object_get_int64(fv); return 0;
+	if (s_eq(fn,"in_reply_to_status_id_str")) {} return 0;
+	if (s_eq(fn,"in_reply_to_user_id")) nt->in_reply_to_user_id = json_object_get_int64(fv); return 0;
+	if (s_eq(fn,"in_reply_to_user_id_str")) {} return 0;
+	if (s_eq(fn,"in_reply_to_screen_name")) { if(ft) strncpy(nt->in_reply_to_screen_name,json_object_get_string(fv),16); } return 0;
+	if (s_eq(fn,"user")) nt->user_id = parse_json_user(NULL,fv,1); return 0;
+	if (s_eq(fn,"truncated")) nt->truncated = json_object_get_boolean(fv); return 0;
+	if (s_eq(fn,"favorited")) nt->favorited = json_object_get_boolean(fv); return 0;
+	if (s_eq(fn,"retweeted")) nt->retweeted = json_object_get_boolean(fv); return 0;
+	if (s_eq(fn,"favorite_count")) nt->favorite_count = json_object_get_int64(fv); return 0;
+	if (s_eq(fn,"retweet_count")) nt->retweet_count = json_object_get_int64(fv); return 0;
+	if (s_eq(fn,"retweeted_status")) nt->retweeted_status_id = parse_json_tweet(NULL,fv,1); return 0;
+	if (s_eq(fn,"possibly_sensitive")) nt->possibly_sensitive = json_object_get_nullbool(fv); return 0;
+
+	if (s_eq(fn,"text")) nt->text = strdup(json_object_get_string(fv)); return 0;
+	//if (s_eq(fn,"lang")) nt->lang = strdup(json_object_get_string(fv)); return 0;
+	if (s_eq(fn,"source")) nt->source = strdup(json_object_get_string(fv)); return 0;
+	if (s_eq(fn,"created_at")) nt->created_at = gettweettime(json_object_get_string(fv));
+	return 1;
+}
 
 uint64_t parse_json_user(struct t_account* acct, json_object* user, int perspectival) {
 	//returns the user ID of the twitter user. also probably adds the user struct to the hash table or something.
 	struct json_object_iterator it_c, it_e;
 	it_c = json_object_iter_begin(user);
 	it_e = json_object_iter_end(user);
-
-	uint64_t id = 0;
 
 	const char* fn; json_object* fv; enum json_type ft; struct t_user nu;
 
@@ -330,68 +386,25 @@ uint64_t parse_json_user(struct t_account* acct, json_object* user, int perspect
 		fv = json_object_iter_peek_value(&it_c);
 		ft = json_object_get_type(fv);
 
-		if (s_eq(fn,"id")) id = nu.id = json_object_get_int64(fv); else
-		if (s_eq(fn,"id_str")) {} else
-		if (s_eq(fn,"screen_name") && ft) strncpy(nu.screen_name,json_object_get_string(fv),16); else
-		if (s_eq(fn,"followers_count")) nu.followers_count = json_object_get_int64(fv); else
-		if (s_eq(fn,"friends_count")) nu.friends_count = json_object_get_int64(fv); else
-		if (s_eq(fn,"protected")) nu.protected_ = json_object_get_nullbool(fv); else
-		if (s_eq(fn,"geo_enabled")) nu.geo_enabled = json_object_get_nullbool(fv); else
-		if (s_eq(fn,"verified")) nu.verified = json_object_get_nullbool(fv); else
-		if (s_eq(fn,"contributors_enabled")) nu.contributors_enabled = json_object_get_nullbool(fv); else
-		if (s_eq(fn,"following")) nu.following = json_object_get_nullbool(fv); else
-		if (s_eq(fn,"follow_request_sent")) nu.follow_request_sent = json_object_get_nullbool(fv); else
-		if (s_eq(fn,"is_translator")) nu.is_translator = json_object_get_nullbool(fv); else
-		if (s_eq(fn,"is_translation_enabled")) {} else
-		if (s_eq(fn,"favourites_count")) nu.favorites_count = json_object_get_int64(fv); else
-		if (s_eq(fn,"listed_count")) nu.listed_count = json_object_get_int64(fv); else
-		if (s_eq(fn,"followers_count")) nu.followers_count = json_object_get_int64(fv); else
-		if (s_eq(fn,"friends_count")) nu.friends_count = json_object_get_int64(fv); else
-		if (s_eq(fn,"statuses_count")) nu.statuses_count = json_object_get_int64(fv); else
-		if (s_eq(fn,"utc_offset")) nu.utc_offset = json_object_get_int(fv); else
-		if (s_eq(fn,"name")) nu.name = strdup(json_object_get_string(fv)); else
-		if (s_eq(fn,"created_at")) nu.created_at = strdup(json_object_get_string(fv)); else
-		if (s_eq(fn,"location")) nu.location = strdup(json_object_get_string(fv)); else
-		if (s_eq(fn,"description")) nu.description = strdup(json_object_get_string(fv)); else
-		if (s_eq(fn,"url")) { if (fv) nu.url = strdup(json_object_get_string(fv)); } else
-		if (s_eq(fn,"default_profile")) {} else
-		if (s_eq(fn,"default_profile_image")) {} else
-		if (s_eq(fn,"profile_background_color")) {} else
-		if (s_eq(fn,"profile_background_color")) {} else
-		if (s_eq(fn,"profile_background_image_url")) {} else
-		if (s_eq(fn,"profile_background_image_url_https")) {} else
-		if (s_eq(fn,"profile_background_tile")) {} else
-		if (s_eq(fn,"profile_banner_url")) {} else
-		if (s_eq(fn,"profile_image_url")) {} else
-		if (s_eq(fn,"profile_image_url_https")) {} else
-		if (s_eq(fn,"profile_link_color")) {} else
-		if (s_eq(fn,"profile_sidebar_border_color")) {} else
-		if (s_eq(fn,"profile_sidebar_fill_color")) {} else
-		if (s_eq(fn,"profile_sidebar_text_color")) {} else
-		if (s_eq(fn,"profile_use_background_image")) {} else
-		if (s_eq(fn,"profile_text_color")) {}
-		// else	printf("unparsed user field %s\n", fn);
-
-		nu.perspectival = perspectival;
-		nu.retrieved_on = time(NULL); 
+		fill_json_user_fields(&nu,ft,fn,fv);	
 
 		json_object_iter_next(&it_c);
 
 	}
 
+	nu.perspectival = perspectival;
+	nu.retrieved_on = time(NULL); 
+
 	//printf("Parsed user %lld.\n",id);
 
 	int r = uht_insert(&nu,no_replace); if (r != 0) printf("uht_insert tweet returned %d\n",r);
 
-	return id;
+	return nu.id;
 }
-
 uint64_t parse_json_tweet(struct t_account* acct, json_object* tweet, int perspectival) {
 	struct json_object_iterator it_c, it_e;
 	it_c = json_object_iter_begin(tweet);
 	it_e = json_object_iter_end(tweet);
-
-	uint64_t id = 0;
 
 	const char* fn; json_object* fv; enum json_type ft; struct t_tweet nt;
 
@@ -403,39 +416,21 @@ uint64_t parse_json_tweet(struct t_account* acct, json_object* tweet, int perspe
 		fv = json_object_iter_peek_value(&it_c);
 		ft = json_object_get_type(fv);
 
-		if (s_eq(fn,"id")) id = nt.id = json_object_get_int64(fv); else
-		if (s_eq(fn,"id_str")) {} else
-		if (s_eq(fn,"in_reply_to_status_id")) nt.in_reply_to_status_id = json_object_get_int64(fv); else
-		if (s_eq(fn,"in_reply_to_status_id_str")) {} else
-		if (s_eq(fn,"in_reply_to_user_id")) nt.in_reply_to_user_id = json_object_get_int64(fv); else
-		if (s_eq(fn,"in_reply_to_user_id_str")) {} else
-		if (s_eq(fn,"in_reply_to_screen_name")) { if(ft) strncpy(nt.in_reply_to_screen_name,json_object_get_string(fv),16); } else
-		if (s_eq(fn,"user")) nt.user_id = parse_json_user(acct,fv,1); else
-		if (s_eq(fn,"truncated")) nt.truncated = json_object_get_boolean(fv); else
-		if (s_eq(fn,"favorited")) nt.favorited = json_object_get_boolean(fv); else
-		if (s_eq(fn,"retweeted")) nt.retweeted = json_object_get_boolean(fv); else
-		if (s_eq(fn,"favorite_count")) nt.favorite_count = json_object_get_int64(fv); else
-		if (s_eq(fn,"retweet_count")) nt.retweet_count = json_object_get_int64(fv); else
-		if (s_eq(fn,"retweeted_status")) nt.retweeted_status_id = parse_json_tweet(acct,fv,1); else
-		if (s_eq(fn,"possibly_sensitive")) nt.possibly_sensitive = json_object_get_nullbool(fv); else
+		fill_json_tweet_fields(&nt,ft,fn,fv);
 
-		if (s_eq(fn,"text")) nt.text = strdup(json_object_get_string(fv)); else
-		if (s_eq(fn,"lang")) nt.lang = strdup(json_object_get_string(fv)); else
-		if (s_eq(fn,"source")) nt.source = strdup(json_object_get_string(fv)); else
-		if (s_eq(fn,"created_at")) nt.created_at = strdup(json_object_get_string(fv));
-		
 		//else printf("unparsed tweet field %s\n", fn);
-
-		nt.perspectival = perspectival;
-		nt.retrieved_on = time(NULL); 
 
 		json_object_iter_next(&it_c);
 
 	}
 
+	nt.perspectival = perspectival;
+	nt.retrieved_on = time(NULL); 
+
+
 	//printf("Parsed tweet %lld.\n",id);
 	int r = tht_insert(&nt,no_replace); if (r != 0) printf("tht_insert tweet returned %d\n",r);
-	return id;
+	return nt.id;
 }
 
 int parse_timeline(struct t_account* acct, enum timelinetype tt, char* timelinereply) {

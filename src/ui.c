@@ -2,6 +2,7 @@
 #include <pthread.h>
 
 #include "ui.h"
+#include "stringex.h"
 
 int init_ui(){
 	initscr();
@@ -31,6 +32,20 @@ int destroy_ui(){
 
 }
 
+char* splittext(char* origstring, char* separators) {
+	char* newstring = malloc(1); newstring[0] = '\0';
+
+
+	
+}
+
+WINDOW* tweetpad(struct t_tweet* tweet) {
+	if (tweet == NULL) return NULL;
+
+	
+	
+
+}
 
 void* windowthread(void* param)
 {

@@ -5,6 +5,7 @@
 #include <time.h>
 #include "hashtable.h"
 #include "btree.h"
+#include <json-c/json.h>
 
 #ifndef _TWT_H_
 #define _TWT_H_
@@ -19,9 +20,8 @@ struct t_account** acctlist; //acct list.
 struct hashtable* tweetht; //tweet cache hash table.
 struct hashtable* userht; //user cache hash table.
 
-struct btree* tweetbt; //tweet ID binary tree.
-struct btree* userbt; //tweet ID binary tree.
-
+//struct btree* tweetbt; //tweet ID binary tree.
+//struct btree* userbt; //tweet ID binary tree.
 
 struct t_account {
 	//this structure refers to twitter log-in accounts
@@ -41,9 +41,10 @@ struct t_contributor {
 	uint64_t id;
 	char screen_name[16];
 };
+
 struct t_tweet {
 	struct t_account* acct;
-	char* created_at; //should be time
+	time_t created_at; //should be time
 	uint64_t id;
 	char* text;
 	char* source;
@@ -51,6 +52,7 @@ struct t_tweet {
 	uint64_t in_reply_to_status_id;
 	uint64_t in_reply_to_user_id;
 	char in_reply_to_screen_name[16];
+	  //twitter screen names can't have unicode chars and are 15ch max.
 	//struct t_user* user;
 	uint64_t user_id; // not an actual field.
 	//geo;
@@ -63,16 +65,15 @@ struct t_tweet {
 	struct t_entity** entities;
 	int favorited;
 	int retweeted;
-	char* lang;
+	//char* lang;
 	int possibly_sensitive;
 	int perspectival;
 	time_t retrieved_on;
 };
 struct t_user {
 	int contributors_enabled;
-	char* created_at;
+	time_t created_at;
 	int default_profile;
-	int default_profile_image;
 	char* description;
 	struct t_entity** entities;
 	uint64_t favorites_count;
@@ -83,7 +84,7 @@ struct t_user {
 	int geo_enabled;
 	uint64_t id;
 	int is_translator;
-	char* lang;
+	//char* lang;
 	uint64_t listed_count;
 	char* location;
 	char* name;
@@ -136,7 +137,9 @@ struct t_user* userdup(struct t_user* orig);
 void tweetdel(struct t_tweet* ptr);
 void userdel(struct t_user* ptr);
 
+uint64_t parse_json_user(struct t_account* acct, json_object* user, int perspectival);
 
+uint64_t parse_json_tweet(struct t_account* acct, json_object* tweet, int perspectival);
 
 int request_token(struct t_account* acct);
 int authorize(struct t_account* acct, char** url);

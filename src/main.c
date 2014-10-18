@@ -22,28 +22,6 @@ int addAccount() {
 		return 0;
 }
 
-void print_tweet(uint64_t id, void* ctx) {
-
-	struct t_tweet* t = tht_search(id);
-
-	if (t != NULL) {
-
-		char* usn;
-		struct t_user* u = uht_search(t->user_id);
-		if (u != NULL) usn=u->screen_name; else usn = "(unknown)";
-
-		
-
-		printf("%16s | %s\n",usn,t->text);
-
-		userdel(u);
-
-	} else printf("(null for some reason)\n");
-
-	tweetdel(t);
-
-}
-
 int main(int argc, char* argv[])
 {
 	inithashtables();
