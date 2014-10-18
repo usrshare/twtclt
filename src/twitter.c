@@ -371,7 +371,7 @@ struct t_entity* get_entity(json_object* entity_obj, enum entitytype et) {
 
     struct t_entity entity;
 
-    const char* fn; json_object* fv; enum json_type ft;
+    const char* fn; json_object* fv;// enum json_type ft;
 
     memset(&entity,'\0',sizeof entity);
 
@@ -379,7 +379,7 @@ struct t_entity* get_entity(json_object* entity_obj, enum entitytype et) {
 
 	fn = json_object_iter_peek_name(&it_c);
 	fv = json_object_iter_peek_value(&it_c);
-	ft = json_object_get_type(fv);
+	//ft = json_object_get_type(fv); //unused
 
 	entity.type = et;
 
@@ -418,7 +418,7 @@ char* parse_tweet_entities(struct t_tweet* tweet) {
 
     int32_t utfchar = 0;
 
-    int i=0, charents = 0; char* iter = tweet->text; int l = strlen(iter); int len = 1;
+    int i=0, charents = 0; const uint8_t* iter = (const uint8_t*)(tweet->text); int l = strlen((const char*)iter); int len = 1;
 
     do {
 	len = utf8proc_iterate(iter,l,&utfchar);
@@ -437,7 +437,7 @@ char* parse_tweet_entities(struct t_tweet* tweet) {
 
 
 	if (curent == NULL) {
-	    text = strnrecat(text,iter,len);
+	    text = strnrecat(text,(const char*)iter,len);
 	}
 
 	if (addent != NULL) {
@@ -480,7 +480,7 @@ struct t_entity** load_tweet_entities(json_object* entities_obj, int* out_entity
 
     struct t_entity** entarr = NULL;
 
-    const char* fn; json_object* fv; enum json_type ft; struct t_entity* newent; enum entitytype et; int i,n = 0;
+    const char* fn; json_object* fv; enum json_type ft; enum entitytype et; int i,n = 0;
 
     //memset(&nu,'\0',sizeof nu);
 
@@ -691,11 +691,11 @@ int parse_timeline(struct t_account* acct, enum timelinetype tt, char* timeliner
     }
 
     json_tokener_free(jt);
+    return 0;
 }
 
 int load_timeline_ext(struct t_account* acct, enum timelinetype tt, int since_id, int max_id, int trim_user, int exclude_replies, int contributor_details, int include_entities) {
     const char twt_home[] = "https://api.twitter.com/1.1/statuses/home_timeline.json";
-    char temp[100];
     char* twtcur = strdup(twt_home);
 
     if (since_id) addparam_int(twtcur,"since_id",since_id,1);
@@ -739,6 +739,7 @@ int save_accounts() {
 
     fflush(db);
     fclose(db);
+    return 0;
 }
 int load_accounts() {
     FILE* db = fopen("accounts.db","r"); if (db == NULL) { perror("fopen"); if (errno != ENOENT) return 1; else return 0; }
@@ -746,10 +747,10 @@ int load_accounts() {
     char name[100], tkey[100], tsct[100];
     while (!feof(db)) {
 	int r = fscanf(db,"%d %100s %100s %100s %d\n",&userid,name,tkey,tsct,&auth);
-	if (r != 5) { printf("%d fields returned instead of 5\n"); return 1;}
+	if (r != 5) { printf("%d fields returned instead of 5\n",r); return 1;}
 	struct t_account* na = newAccount();
 	na->userid = userid; na->auth = auth;
-	if (name) na->name = strdup(name); if (tkey) na->tkey = strdup(tkey); if (tsct) na->tsct = strdup(tsct);
+	na->name = strdup(name); na->tkey = strdup(tkey); na->tsct = strdup(tsct);
 	add_acct(na);
     }
     fclose(db);

@@ -16,9 +16,9 @@ time_t gettweettime(const char* created_at_str) {
 
 int reltimestr(time_t tweettime, char* outstr) {
 
-    //takes a time and outputs the difference (or day if too large) in outstr. outstr must hold at least 12 characters.
+    //takes a time and outputs the difference (or day if too large) in outstr. outstr must hold at least 8 characters.
 
-    char res[12];
+    char res[8];
     memset(&res,0,8);
 
     int value = 0; char* append = NULL; int norel = 0; /* int r = 0; */
@@ -32,12 +32,11 @@ int reltimestr(time_t tweettime, char* outstr) {
     if (timediff < 60) { value = timediff; append = "s";} else
 	if (timediff < 3600) { value = timediff / 60; append = "m";} else
 	    if (timediff < 3600*24) { value = timediff / 3600; append = "h";} else
-		if (timediff < 3600*24*7) { value = timediff / 3600 / 24; append = "d";} else norel=1;
 
-    if (norel) { strftime(res,12,"%d %b %Y",noreltime); } else {
-	snprintf(res,12,"%d%s",value,append);
+    if (norel) { strftime(res,8,"%d %b",noreltime); } else {
+	snprintf(res,8,"%d%s",value,append);
     }
 
-    strncpy(outstr,res,12);
+    strncpy(outstr,res,8);
     return 0;
 }

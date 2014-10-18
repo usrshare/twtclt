@@ -27,19 +27,19 @@ int init_ui(){
 	keypad(stdscr, TRUE);
 	titlebar = newwin(1,COLS,0,0);
 	statusbar = newwin(1,COLS,(LINES-1),0);
-
+	return 0;
 }
 
 int destroy_ui(){
 	endwin();
-
+	return 0;
 }
 
 char* splittext(char* origstring, char* separators) {
 	char* newstring = malloc(1); newstring[0] = '\0';
 
 
-	
+	return NULL;
 }
 
 WINDOW* tweetpad(struct t_tweet* tweet) {
@@ -47,13 +47,14 @@ WINDOW* tweetpad(struct t_tweet* tweet) {
 
 	
 	
-
+    return NULL;
 }
 
 void* windowthread(void* param)
 {
-
+    return NULL;
 }
 
 int draw_cards() {
+    return 1;
 }
