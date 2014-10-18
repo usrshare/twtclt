@@ -1,3 +1,5 @@
+// vim: cin:sts=4:sw=4 
+
 #include <oauth.h>
 #include <stdint.h>
 #include <search.h>
@@ -24,95 +26,95 @@ struct hashtable* userht; //user cache hash table.
 //struct btree* userbt; //tweet ID binary tree.
 
 struct t_account {
-	//this structure refers to twitter log-in accounts
-	char* name; //acct screen name
-	int userid; //acct user id
-	char* tkey; //token key
-	char* tsct; //token secret
-	int auth; //is authorized(access token) or not(req token)?
-	struct btree* timelinebt; //timeline btree.
-	struct btree* userbt; //user btree.
-	struct btree* mentionbt; //mention btree.
+    //this structure refers to twitter log-in accounts
+    char* name; //acct screen name
+    int userid; //acct user id
+    char* tkey; //token key
+    char* tsct; //token secret
+    int auth; //is authorized(access token) or not(req token)?
+    struct btree* timelinebt; //timeline btree.
+    struct btree* userbt; //user btree.
+    struct btree* mentionbt; //mention btree.
 };
 struct t_timeline {
-	struct t_timeline* next;
+    struct t_timeline* next;
 };
 struct t_contributor {
-	uint64_t id;
-	char screen_name[16];
+    uint64_t id;
+    char screen_name[16];
 };
 
 struct t_tweet {
-	struct t_account* acct;
-	time_t created_at; //should be time
-	uint64_t id;
-	char* text;
-	char* source;
-	int truncated; //do we need that?
-	uint64_t in_reply_to_status_id;
-	uint64_t in_reply_to_user_id;
-	char in_reply_to_screen_name[16];
-	  //twitter screen names can't have unicode chars and are 15ch max.
-	//struct t_user* user;
-	uint64_t user_id; // not an actual field.
-	//geo;
-	double complex coordinates; // real = long, imag = lat.
-	struct t_place* place;
-	struct t_contributor** contributors;
-	uint64_t retweeted_status_id;
-	uint64_t retweet_count;
-	uint64_t favorite_count;
-	struct t_entity** entities;
-	int favorited;
-	int retweeted;
-	//char* lang;
-	int possibly_sensitive;
-	int perspectival;
-	time_t retrieved_on;
+    struct t_account* acct;
+    time_t created_at; //should be time
+    uint64_t id;
+    char* text;
+    char* source;
+    int truncated; //do we need that?
+    uint64_t in_reply_to_status_id;
+    uint64_t in_reply_to_user_id;
+    char in_reply_to_screen_name[16];
+    //twitter screen names can't have unicode chars and are 15ch max.
+    //struct t_user* user;
+    uint64_t user_id; // not an actual field.
+    //geo;
+    double complex coordinates; // real = long, imag = lat.
+    struct t_place* place;
+    struct t_contributor** contributors;
+    uint64_t retweeted_status_id;
+    uint64_t retweet_count;
+    uint64_t favorite_count;
+    struct t_entity** entities;
+    int favorited;
+    int retweeted;
+    //char* lang;
+    int possibly_sensitive;
+    int perspectival;
+    time_t retrieved_on;
 };
 struct t_user {
-	int contributors_enabled;
-	time_t created_at;
-	int default_profile;
-	char* description;
-	struct t_entity** entities;
-	uint64_t favorites_count;
-	int follow_request_sent;
-	int following;
-	uint32_t followers_count;
-	uint32_t friends_count;
-	int geo_enabled;
-	uint64_t id;
-	int is_translator;
-	//char* lang;
-	uint64_t listed_count;
-	char* location;
-	char* name;
-	int protected_; //not the C++ keyword
-	char screen_name[16];
-	int show_all_inline_media;
-	int status_tweet_id;
-	uint64_t statuses_count;
-	char* time_zone;
-	char* url;
-	int32_t utc_offset;
-	int verified;
-	char* withheld_in_countries;
-	char withheld_scope[7];
-	int perspectival;
-	time_t retrieved_on;
+    int contributors_enabled;
+    time_t created_at;
+    int default_profile;
+    char* description;
+    struct t_entity** entities;
+    uint64_t favorites_count;
+    int follow_request_sent;
+    int following;
+    uint32_t followers_count;
+    uint32_t friends_count;
+    int geo_enabled;
+    uint64_t id;
+    int is_translator;
+    //char* lang;
+    uint64_t listed_count;
+    char* location;
+    char* name;
+    int protected_; //not the C++ keyword
+    char screen_name[16];
+    int show_all_inline_media;
+    int status_tweet_id;
+    uint64_t statuses_count;
+    char* time_zone;
+    char* url;
+    int32_t utc_offset;
+    int verified;
+    char* withheld_in_countries;
+    char withheld_scope[7];
+    int perspectival;
+    time_t retrieved_on;
 };
 
 enum timelinetype {
-	home,
-	user,
-	mentions,
+    home,
+    user,
+    mentions,
 };
 
 enum collision_behavior {
-	no_replace,
-	replace,
-	update, //replaces non-perspectival data with perspectival, and newer data with older.
+    no_replace,
+    replace,
+    update, //replaces non-perspectival data with perspectival, and newer data with older.
 };
 
 int initStructures();

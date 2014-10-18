@@ -1,6 +1,9 @@
+// vim: cin:sts=4:sw=4 
+
 #include <stdio.h>
 #include "twitter.h"
 #include "ui.h"
+#include "utf8.h"
 
 int addAccount() {
 
@@ -44,5 +47,17 @@ int main(int argc, char* argv[])
 
 	destroy_ui();
 
+
+	//FIXME: right now, the program tests strings for length
+
+	char* text;
+
+	if (argc >= 2) text = argv[1]; else text = "Привет!";
+
+	int cpts = tweet_count_chars(text);
+
+	printf("\"%s\" length is %d\n",text,cpts);
+
+	if (cpts > MAXTWEETLEN) printf("That'd be too much for a Tweet.\n"); //apparently, you're supposed to capitalize "tweet".
 	return 0;
 }

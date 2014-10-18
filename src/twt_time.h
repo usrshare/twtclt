@@ -1,3 +1,5 @@
+// vim: cin:sts=4:sw=4 
+
 #include <time.h>
 
 #ifndef _TWT_TIME_H_

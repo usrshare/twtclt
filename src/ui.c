@@ -1,6 +1,9 @@
+// vim: cin:sts=4:sw=4 
+
 #include <stdlib.h>
 #include <pthread.h>
 
+#include "twitter.h"
 #include "ui.h"
 #include "stringex.h"
 

@@ -1,3 +1,5 @@
+// vim: cin:sts=4:sw=4 
+
 #include <stdint.h>
 
 #ifndef _BTREE_H_

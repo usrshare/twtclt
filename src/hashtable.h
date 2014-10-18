@@ -1,3 +1,5 @@
+// vim: cin:sts=4:sw=4 
+
 #include <stdint.h>
 
 #ifndef _HASHTABLE_H_

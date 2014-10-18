@@ -3,7 +3,22 @@ twtclt
 
 An attempt at writing a twitter client in C.
 
+### Compiling
 
+You should first find **libcurl**, **liboauth** and **libjson-c** in your distribution's repositories. These libraries are definitely available on Debian and Arch Linux.
+
+However, **libmojibake** has to be compiled manually. Before compiling **twtclt**, compile **libmojibake**: 
+
+    $ cd libmojibake
+    $ make
+
+After doing so, **twtclt** will be able to statically link **libmojibake**. Right now, compiling **twtclt** only takes one command:
+
+    $ make
+
+As a result, the executable file **twtclt** will appear in the directory.
+
+**TODO:** correct installation procedures, automatic **libmojibake** compilation.
 
 ### Libraries
 
