@@ -116,6 +116,15 @@ struct t_user* uht_search(uint64_t id){
 }
 
 // tweet and user hashtable functions END
+struct t_entity* entitydup(struct t_entity* orig) {
+    if (orig == NULL) return NULL;
+    struct t_entity* new = malloc(sizeof(struct t_entity));
+    *new = *orig; //copy all values
+    if (orig->text) new->text = strdup(orig->text);
+    if (orig->name) new->name = strdup(orig->name);
+    if (orig->url) new->url = strdup(orig->url);
+    return new;
+}
 struct t_tweet* tweetdup(struct t_tweet* orig) {
     if (orig == NULL) return NULL;
     struct t_tweet* new = malloc(sizeof(struct t_tweet));
@@ -139,10 +148,21 @@ struct t_user* userdup(struct t_user* orig) {
     return new;
 }
 
+void entitydel(struct t_entity* ptr) {
+    if (ptr->text != NULL) free(ptr->text);
+    if (ptr->name != NULL) free(ptr->name);
+    if (ptr->url != NULL) free(ptr->url);
+    free(ptr);
+}
+
 void tweetdel(struct t_tweet* ptr) {
     free(ptr->text);
     free(ptr->source);
     //free(ptr->lang);
+    if (ptr->entities != NULL) {
+    for (int i=0; i<ptr->entity_count; i++)
+	entitydel(ptr->entities[i]);
+    free(ptr->entities); }
     free(ptr);
 }
 void userdel(struct t_user* ptr) {
@@ -153,6 +173,10 @@ void userdel(struct t_user* ptr) {
     free(ptr->time_zone);
     free(ptr->url);
     free(ptr->withheld_in_countries);
+    if (ptr->entities != NULL) {
+    for (int i=0; i<ptr->entity_count; i++)
+	entitydel(ptr->entities[i]);
+    free(ptr->entities); }
     free(ptr);
 }
 
@@ -330,6 +354,23 @@ int json_object_get_nullbool(json_object* obj) {
     if (json_object_get_type(obj) == 0) return -1;
     return json_object_get_boolean(obj);
 }
+
+struct t_entity* get_entity(json_object* v, enum entitytype et) {
+
+    //TODO!
+
+    return NULL;
+}
+
+
+struct t_entity** load_entities(json_object* fv, int* out_entity_count) {
+
+    //TODO!
+
+    out_entity_count = 0; return NULL;
+
+}
+
 // these are helper functions for parse_json_user and parse_json tweet created so that indentation won't break.
 int fill_json_user_fields(struct t_user* nu, enum json_type ft, const char* fn, json_object* fv) {
     if (s_eq(fn,"id")) nu->id = json_object_get_int64(fv); return 0;
@@ -356,6 +397,13 @@ int fill_json_user_fields(struct t_user* nu, enum json_type ft, const char* fn, 
     if (s_eq(fn,"location")) nu->location = strdup(json_object_get_string(fv)); return 0;
     if (s_eq(fn,"description")) nu->description = strdup(json_object_get_string(fv)); return 0;
     if (s_eq(fn,"url")) { if (fv) nu->url = strdup(json_object_get_string(fv)); } return 0;
+
+    if (s_eq(fn,"entities")) {
+	int entity_count = 0;
+	nu->entities = load_entities(fv,&entity_count);
+	nu->entity_count = entity_count; 
+    }
+
     if (s_eq(fn,"default_profile")) return 0;
     if (s_eq(fn,"default_profile_image")) return 0;
     if (s_eq(fn,"profile_background_color")) return 0;

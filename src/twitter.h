@@ -25,6 +25,28 @@ struct hashtable* userht; //user cache hash table.
 //struct btree* tweetbt; //tweet ID binary tree.
 //struct btree* userbt; //tweet ID binary tree.
 
+enum entitytype {
+    hashtag, //#hashtag
+    symbol, //$TWTR
+    url, //URL
+    mention, //@mention
+    media, //media (img/video)
+};
+enum timelinetype {
+    home,
+    user,
+    mentions,
+};
+
+struct t_entity {
+    enum entitytype et; //entity type
+    uint8_t index_s,index_e; //indices.
+    char* text; //text for #$, screen_name for @, url for urls/media
+    char* name; //name for @s, display_url for urls/media
+    char* url; //expanded_url for urls/media.
+    uint64_t id; //ID for mentions and media
+};
+
 struct t_account {
     //this structure refers to twitter log-in accounts
     char* name; //acct screen name
@@ -65,6 +87,7 @@ struct t_tweet {
     uint64_t retweet_count;
     uint64_t favorite_count;
     struct t_entity** entities;
+    uint8_t entity_count;
     int favorited;
     int retweeted;
     //char* lang;
@@ -78,6 +101,7 @@ struct t_user {
     int default_profile;
     char* description;
     struct t_entity** entities;
+    uint8_t entity_count;
     uint64_t favorites_count;
     int follow_request_sent;
     int following;
@@ -105,11 +129,6 @@ struct t_user {
     time_t retrieved_on;
 };
 
-enum timelinetype {
-    home,
-    user,
-    mentions,
-};
 
 enum collision_behavior {
     no_replace,
@@ -134,8 +153,10 @@ int uht_insert(struct t_user* user, enum collision_behavior cbeh);
 int uht_delete(uint64_t id);
 struct t_user* uht_search(uint64_t id);
 
+struct t_entity* entitydup(struct t_entity* orig);
 struct t_tweet* tweetdup(struct t_tweet* orig);
 struct t_user* userdup(struct t_user* orig);
+void entitydel(struct t_entity* ptr);
 void tweetdel(struct t_tweet* ptr);
 void userdel(struct t_user* ptr);
 
