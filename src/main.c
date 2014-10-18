@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include "twitter.h"
+#include "twt_time.h"
 #include "ui.h"
 #include "utf8.h"
 
@@ -29,18 +30,35 @@ void print_tweet(uint64_t id, void* ctx) {
 
     struct t_tweet* tt = tht_search(id);
 
+    struct t_tweet* ot = NULL;
+
     if (tt == NULL) return;
+
+    if (tt->retweeted_status_id != 0) ot = tht_search(tt->retweeted_status_id);
     
-    struct t_user* tu = uht_search(tt->user_id);
+    struct t_tweet* rt = (ot ? ot : tt);
+    
+    struct t_user* rtu = uht_search(rt->user_id);
 
-    char* usn = (tu ? tu->screen_name : "(unknown)");
+    struct t_user* otu = uht_search(tt->user_id);
 
-    char* text = parse_tweet_entities(tt);
+    char reltime[12];
+    char rttime[12];
 
-    printf("%16s | %s\n",usn,text);
+    char* rusn = (rtu ? rtu->screen_name : "(unknown)");
+    char* ousn = (otu ? otu->screen_name : "(unknown)");
+
+    if (ot) reltimestr(tt->created_at,rttime);
+    reltimestr(rt->created_at,reltime);
+
+    char* text = parse_tweet_entities(rt);
+
+    if (ot) printf("%16s | %s [%s] (RT by %s %s)\n",rusn,text,reltime,ousn,rttime); else printf("%16s | %s [%s]\n",rusn,text,reltime);
 
     tweetdel(tt);
-    userdel(tu);
+    userdel(otu);
+    if (ot) tweetdel(ot);
+    if (ot) userdel(rtu);
     free(text);
 
     return;
