@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-std=gnu99 -D_XOPEN_SOURCE=700 -Wall -Wno-deprecated-declarations $(shell ncursesw5-config --cflags) -I./libmojibake
+CFLAGS=-std=gnu99 -D_DEFAULT_SOURCE -D_XOPEN_SOURCE=500 -Wall -Wno-deprecated-declarations $(shell ncursesw5-config --cflags) -I./libmojibake
 DFLAGS=-g
 LIBS= $(shell ncursesw5-config --libs) -lcurl -loauth -ljson-c -pthread libmojibake/libmojibake.a
 CTAGS=ctags -R .

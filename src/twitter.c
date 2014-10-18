@@ -7,6 +7,7 @@
 #include <curl/curl.h>
 #include <time.h>
 #include <mojibake.h>
+#include <assert.h>
 #include "twitter.h"
 #include "hashtable.h"
 #include "stringex.h"
@@ -279,6 +280,8 @@ int oauth_verify(struct t_account* acct, int pin) {
 	printf("Invalid PIN. PIN is supposed to be a 7-digit number.\n");
 	return 1; }
     int r = sprintf(verify_url,"%s%07d",twt_apin,pin);
+
+    assert(r == 7);
 
     char* req_url = NULL;
     char* postarg = NULL;
