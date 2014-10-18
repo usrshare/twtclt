@@ -39,7 +39,7 @@ enum timelinetype {
 };
 
 struct t_entity {
-    enum entitytype et; //entity type
+    enum entitytype type; //entity type
     uint8_t index_s,index_e; //indices.
     char* text; //text for #$, screen_name for @, url for urls/media
     char* name; //name for @s, display_url for urls/media
@@ -100,8 +100,10 @@ struct t_user {
     time_t created_at;
     int default_profile;
     char* description;
-    struct t_entity** entities;
-    uint8_t entity_count;
+    struct t_entity** desc_entities;
+    uint8_t desc_entity_count;
+    struct t_entity** url_entities;
+    uint8_t url_entity_count;
     uint64_t favorites_count;
     int follow_request_sent;
     int following;
@@ -163,6 +165,8 @@ void userdel(struct t_user* ptr);
 uint64_t parse_json_user(struct t_account* acct, json_object* user, int perspectival);
 
 uint64_t parse_json_tweet(struct t_account* acct, json_object* tweet, int perspectival);
+
+char* parse_tweet_entities(struct t_tweet* tweet);
 
 int request_token(struct t_account* acct);
 int authorize(struct t_account* acct, char** url);

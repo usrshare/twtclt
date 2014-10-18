@@ -1,15 +1,24 @@
 // vim: cin:sts=4:sw=4 
-
+#include <string.h>
 #include "stringex.h"
-
-#ifndef _STRINGEX_H_
-#define _STRINGEX_H_
 
 char* strrecat(char* orig, const char* append) {
 	char* new = realloc(orig,strlen(orig) + strlen(append) + 1);
 	new = strcat(new,append);
 	return new;
 }
+
+char* strnrecat(char* orig, const char* append, size_t n) {
+    
+	char* app = strndup(append,n);
+
+	char* new = realloc(orig,strlen(orig) + n + 1);
+	new = strcat(new,app);
+
+	free(app);
+	return new;
+}
+
 
 char* addparam(char* orig, const char* parname, const char* parvalue, int addq) {
 	char* append = malloc(1 + strlen(parname) + 1 + strlen(parvalue) + 1);
@@ -21,5 +30,3 @@ char* addparam_int(char* orig, const char* parname, int64_t parvalue, int addq) 
 	sprintf(pvchr,"%lld",parvalue);
 	return addparam(orig,parname,pvchr,addq);
 }
-
-#endif

@@ -25,6 +25,27 @@ int addAccount() {
 		return 0;
 }
 
+void print_tweet(uint64_t id, void* ctx) {
+
+    struct t_tweet* tt = tht_search(id);
+
+    if (tt == NULL) return;
+    
+    struct t_user* tu = uht_search(tt->user_id);
+
+    char* usn = (tu ? tu->screen_name : "(unknown)");
+
+    char* text = parse_tweet_entities(tt);
+
+    printf("%16s | %s\n",usn,text);
+
+    tweetdel(tt);
+    userdel(tu);
+    free(text);
+
+    return;
+}
+
 int main(int argc, char* argv[])
 {
 	inithashtables();
@@ -37,27 +58,28 @@ int main(int argc, char* argv[])
 
 	printf("%d accounts loaded.\n",acct_n);
 
-	init_ui();
+	//init_ui();
 
 	load_timeline(acctlist[0]);
 
-	//bt_read(acctlist[0]->timelinebt,print_tweet,NULL,desc);
+	bt_read(acctlist[0]->timelinebt,print_tweet,NULL,desc);
 
 	save_accounts();
 
-	destroy_ui();
+	//destroy_ui();
 
 
 	//FIXME: right now, the program tests strings for length
 
-	char* text;
+	/*  char* text;
 
 	if (argc >= 2) text = argv[1]; else text = "Привет!";
 
-	int cpts = tweet_count_chars(text);
+	int i=0; char* test;
 
-	printf("\"%s\" length is %d\n",text,cpts);
+	while ((test = point_to_char_by_idx(text,i)) != NULL) {
 
-	if (cpts > MAXTWEETLEN) printf("That'd be too much for a Tweet.\n"); //apparently, you're supposed to capitalize "tweet".
+	    printf("%s\n",test); i++; } */
+	
 	return 0;
 }
