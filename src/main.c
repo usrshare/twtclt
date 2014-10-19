@@ -66,6 +66,9 @@ void print_tweet(uint64_t id, void* ctx) {
 
 int main(int argc, char* argv[])
 {
+    
+	/* actual twtclt functionality
+	
 	inithashtables();
 
 	acct_n = 0;
@@ -86,18 +89,18 @@ int main(int argc, char* argv[])
 
 	//destroy_ui();
 
+	*/
+
 
 	//FIXME: right now, the program tests strings for length
 
-	/*  char* text;
+	char* text;
 
 	if (argc >= 2) text = argv[1]; else text = "Привет!";
 
 	int i=0; char* test;
 
-	while ((test = point_to_char_by_idx(text,i)) != NULL) {
+	utf8_wrap_text(text, NULL, 200, 30);	
 
-	    printf("%s\n",test); i++; } */
-	
 	return 0;
 }
