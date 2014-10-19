@@ -69,7 +69,7 @@ int tweet_count_chars(const char* text) {
 
     char* new = (char*)utf8proc_NFC((const uint8_t*)text);
 
-    int r = utf8_count_chars(new);
+    int r = utf8_count_chars((const char*)new);
 
     free(new);
 
@@ -84,7 +84,7 @@ char* point_to_char_by_idx(const char* text, int idx) {
     int i = 0; int32_t unichar = -1; const uint8_t* iter = (const uint8_t *) text; ssize_t r = 0; ssize_t l = strlen(text);
 
     while (i != idx) {
-	r = utf8proc_iterate(iter,l,&unichar); if (r == 0) return NULL;
+	r = utf8proc_iterate((const uint8_t *)iter,l,&unichar); if (r == 0) return NULL;
 	i++; iter += r; l -= r;
     }
 
