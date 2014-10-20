@@ -1,6 +1,7 @@
 // vim: cin:sts=4:sw=4 
 
 #include <stdio.h>
+#include <locale.h>
 #include "twitter.h"
 #include "twt_time.h"
 #include "ui.h"
@@ -27,6 +28,8 @@ int addAccount() {
 }
 
 void print_tweet(uint64_t id, void* ctx) {
+
+    setlocale(LC_ALL,"");
 
     struct t_tweet* tt = tht_search(id);
 

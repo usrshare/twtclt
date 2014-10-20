@@ -1,6 +1,7 @@
 // vim: cin:sts=4:sw=4 
 #include <stdio.h>
 #include <string.h>
+#include <wchar.h>
 #include "utf8.h"
 
 const int32_t delimiters[5] = {32,0x2c,0x2e,0x21,0x3f};
@@ -46,13 +47,17 @@ int utf8_wrap_text(const char* in, char* out, size_t maxlen, uint8_t width) {
 	    // is a line break.
 	    column = 0;
 	}
+
+	wchar_t thiswc = (wchar_t)uc;
+	int ucwidth = wcwidth(uc);
+	printf("Character 'U+%X' has width %d\n",thiswc,ucwidth);
 	
-	column++;
+	column += ucwidth;
 	iter+=r;
 	colbyte+=r;
 	l = strend - (char *) iter;
 
-	if (column == width) {
+	if (column >= width) {
 
 	    int tocopy = (lastdelim ? (endline-lastcol) : colbyte);
 
