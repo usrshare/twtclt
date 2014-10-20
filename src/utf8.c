@@ -27,7 +27,7 @@ int utf8_test() {
 
 	utf8_wrap_text(text, test, 1000, 30);	
 
-	//printf("%d\n",strcmp(test,cmp));
+	printf("%s\n",test);
 
 	return 0;
 }
