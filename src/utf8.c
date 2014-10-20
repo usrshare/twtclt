@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <wchar.h>
+#include <assert.h>
 #include "utf8.h"
 
 const int32_t spaces[25] = {0x09,0x0a,0x0b,0x0c,0x0d,0x20,0x85,0xa0,0x1680,0x2000,0x2001,0x2002,0x2003,0x2004,0x2005,0x2006,0x2007,0x2008,0x2009,0x200a,0x2028,0x2029,0x202f,0x205f,0x3000};
@@ -14,6 +15,21 @@ int utf8char_in_set(int32_t uc, const int32_t* set, int32_t setlen) {
 	if (set[i] == uc) return i;
 
     return -1;
+}
+
+int utf8_test() {
+    
+	char text[] = "Привет! This is a test of UTF-8 text ０１２３４５６７８９ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ！゛＃＄％＆（）＊＋、ー。／：；〈＝＝〉？＠［\\］＾＿‘｛｜｝～ H̡̫̤̤̣͉̤ͭ̓̓̇͗̎̀ơ̯̗̱̘̮͒̄̀̈ͤ̀͡w͓̲͙͖̥͉̹͋ͬ̊ͦ̂̀̚ ͎͉͖̌ͯͅͅd̳̘̿̃̔̏ͣ͂̉̕ŏ̖̙͋ͤ̊͗̓͟͜e͈͕̯̮̙̣͓͌ͭ̍̐̃͒s͙͔̺͇̗̱̿̊̇͞ ̸̤͓̞̱̫ͩͩ͑̋̀ͮͥͦ̊Z̆̊͊҉҉̠̱̦̩͕ą̟̹͈̺̹̋̅ͯĺ̡̘̹̻̩̩͋͘g̪͚͗ͬ͒o̢̖͇̬͍͇͓̔͋͊̓ ̢͈͙͂ͣ̏̿͐͂ͯ͠t̛͓̖̻̲ͤ̈ͣ͝e͋̄ͬ̽͜҉͚̭͇ͅx͎̬̠͇̌ͤ̓̂̓͐͐́͋͡ț̗̹̝̄̌̀ͧͩ̕͢ ̮̗̩̳̱̾w͎̭̤͍͇̰̄͗ͭ̃͗ͮ̐o̢̯̻̰̼͕̾ͣͬ̽̔̍͟ͅr̢̪͙͍̠̀ͅǩ̵̶̗̮̮ͪ́?̙͉̥̬͙̟̮͕ͤ̌͗ͩ̕͡ ";
+
+	char cmp[] = "Привет! This is a test of \nUTF-8 text \n０１２３４５６７８９ａｂｃｄｅ\nｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔ\nｕｖｗｘｙｚＡＢＣＤＥＦＧＨＩ\nＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸ\nＹＺ！゛＃＄％＆（）＊＋、ー。\n／：；〈＝＝〉？＠［\\］＾＿‘｛\n｜｝～ Ḣͭ̓̓ṑ͒̈ẘ͋ͬͦ ͎̌ͯͅd̿̃̔̏ŏ͋ͤ̊e͌ͭ̍̐ṡ̿̊͞ ͩͩ͑̋Z̆̊͊҉ą̋̅ͯĺ̡͋͘g̪͗ͬ͒o̔͋͊̓ ͂ͣ̏̿ẗ̛ͤͣē͋ͬ̽x̌ͤ̓̂ť̄̀ͧ\nw̄͗ͭ̃o̾ͣͬ̽r̢̪̀ͅǩ̵ͪ́?ͤ̌͗ͩ \n";
+
+	char test[1000];
+
+	utf8_wrap_text(text, test, 1000, 30);	
+
+	//printf("%d\n",strcmp(test,cmp));
+
+	return 0;
 }
 
 ssize_t utf8_strnlen(const uint8_t* in, size_t maxlen) {
@@ -36,6 +52,8 @@ ssize_t utf8_strnlen(const uint8_t* in, size_t maxlen) {
 int utf8_wrap_text(const char* in, char* out, size_t maxlen, uint8_t width) {
     
     //TODO: Writes a copy of UTF-8 text in _in_, wrapped to _width_ chars per line, into _out_.
+
+    if (out == NULL) return -1;
 
     char res[maxlen];
 
@@ -74,7 +92,7 @@ int utf8_wrap_text(const char* in, char* out, size_t maxlen, uint8_t width) {
 
 	if (column + ucwidth > width) { column = width;} else {
 	
-	if ((utf8char_in_set(uc,spaces,25) == -1) || (column != 0)) { column += ucwidth; colbyte+=r; } else lastcol = iter+r; //will not add char if line starts with a space.
+	if ((utf8char_in_set(uc,spaces,25) == -1) || (column != 0)) { column += ucwidth; colbyte+=r; } else lastcol = (char*)iter+r; //will not add char if line starts with a space.
 
 	iter+=r;
 	//colbyte+=r;
@@ -82,11 +100,11 @@ int utf8_wrap_text(const char* in, char* out, size_t maxlen, uint8_t width) {
 
 	if (column >= width) {
 
-	    int tocopy = (lastdelim ? (endline-lastcol) : colbyte);
+	    ssize_t tocopy = (lastdelim ? (endline-lastcol) : colbyte);
 
 	    if (bytesleft < (tocopy+1)) { tocopy = bytesleft-1; r = 0; }
 
-	    tocopy = utf8_strnlen(lastcol,tocopy);
+	    tocopy = utf8_strnlen((const uint8_t*)lastcol,tocopy);
 	    
 	    strncat(res,lastcol,tocopy);
 	    if (r) strncat(res,"\n",1);
@@ -105,11 +123,12 @@ int utf8_wrap_text(const char* in, char* out, size_t maxlen, uint8_t width) {
     } while (r > 0);
     
     if (bytesleft >= colbyte+1) strncat(res,lastcol,colbyte);
- 
-    printf("%s\n",res);
 
+    assert(strlen(res) < maxlen);
 
-    return 0;
+    strncpy(out,res,strlen(res)+1);
+
+    return strlen(res)+1;
 }
 
 int utf8_count_chars(const char* text) {
