@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <locale.h>
+#include <unistd.h>
 #include "twitter.h"
 #include "twt_time.h"
 #include "ui.h"
@@ -65,13 +66,54 @@ void print_tweet(uint64_t id, void* ctx) {
     return;
 }
 
+void show_help() {
+    printf("todo help\n");
+}
+
+void show_version() {
+    printf("todo version\n");
+}
+
+
 int main(int argc, char* argv[])
 {
 
+	//Used to ensure proper work of wcwidth in utf8.c. Will probably fail on non-UTF8 locales.
         char* locale = setlocale(LC_ALL,"");
-    
-	printf("Loaded locale %s\n",locale);
-    
+
+
+	//parse arguments with getopt here.
+
+	int c=0, qparam = 0;
+
+	while ( (c = getopt(argc,argv,":hvq:")) != -1) {
+
+	    switch (c) {
+		case 'h':
+		    show_help();
+		    exit(0);
+		    break;
+		case 'v':
+		    show_version();
+		    exit(0);
+		    break;
+		case 'q':
+		    qparam = atoi(optarg);
+		    break;
+		case ':':
+		    printf("No parameter for key -%c\n",optopt);
+		    exit(EXIT_FAILURE);
+		    break;
+		case '?':
+		default:
+		    printf("Unknown key -%c\n",optopt);
+		    exit(EXIT_FAILURE);
+		    break;
+	    }
+	}
+
+	//end parse argumets with getopt here.
+
 	inithashtables();
 
 	acct_n = 0;

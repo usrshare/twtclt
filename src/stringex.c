@@ -1,4 +1,5 @@
 // vim: cin:sts=4:sw=4 
+#include <inttypes.h>
 #include <string.h>
 #include "stringex.h"
 
@@ -27,6 +28,6 @@ char* addparam(char* orig, const char* parname, const char* parvalue, int addq) 
 }
 char* addparam_int(char* orig, const char* parname, int64_t parvalue, int addq) {
 	char pvchr[22]; //enough to store any 64bit number.
-	sprintf(pvchr,"%lld",parvalue);
+	sprintf(pvchr,"%" PRId64 "",parvalue);
 	return addparam(orig,parname,pvchr,addq);
 }
