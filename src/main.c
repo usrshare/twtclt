@@ -29,8 +29,6 @@ int addAccount() {
 
 void print_tweet(uint64_t id, void* ctx) {
 
-    setlocale(LC_ALL,"");
-
     struct t_tweet* tt = tht_search(id);
 
     struct t_tweet* ot = NULL;
@@ -69,6 +67,10 @@ void print_tweet(uint64_t id, void* ctx) {
 
 int main(int argc, char* argv[])
 {
+
+        char* locale = setlocale(LC_ALL,"");
+    
+	printf("Loaded locale %s\n",locale);
     
 	/* actual twtclt functionality
 	

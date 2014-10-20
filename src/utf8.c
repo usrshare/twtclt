@@ -4,6 +4,7 @@
 #include <wchar.h>
 #include "utf8.h"
 
+const int32_t spaces[25] = {0x09,0x0a,0x0b,0x0c,0x0d,0x20,0x85,0xa0,0x1680,0x2000,0x2001,0x2002,0x2003,0x2004,0x2005,0x2006,0x2007,0x2008,0x2009,0x200a,0x2028,0x2029,0x202f,0x205f,0x3000};
 const int32_t delimiters[5] = {32,0x2c,0x2e,0x21,0x3f};
 const int32_t linebreaks[2] = {10,13};
 
@@ -14,6 +15,23 @@ int utf8char_in_set(int32_t uc, const int32_t* set, int32_t setlen) {
 
     return -1;
 }
+
+ssize_t utf8_strnlen(const uint8_t* in, size_t maxlen) {
+    //returns a number of bytes in _in_ that contain enough full characters to fit into maxlen bytes.
+
+    int r=0, n=0, l=strlen((const char*)in); const uint8_t* iter = in; int32_t uc=0;
+    do {
+	r = utf8proc_iterate(iter,l,&uc);
+
+	if (n + r > maxlen) return n; else n+=r;
+	iter += r;
+	l -= r;
+
+    } while (r >= 1);
+
+    return n;
+}
+
 
 int utf8_wrap_text(const char* in, char* out, size_t maxlen, uint8_t width) {
     
@@ -40,6 +58,7 @@ int utf8_wrap_text(const char* in, char* out, size_t maxlen, uint8_t width) {
 	r = utf8proc_iterate(iter,l,&uc);
 
 	if (utf8char_in_set(uc,delimiters,5) != -1) {
+
 	    // is a delimiter character
 	    lastdelim = (char*) iter; //word_ _test
 	    endline = lastdelim+r; //   word_t_est
@@ -49,19 +68,25 @@ int utf8_wrap_text(const char* in, char* out, size_t maxlen, uint8_t width) {
 	}
 
 	wchar_t thiswc = (wchar_t)uc;
-	int ucwidth = wcwidth(uc);
-	printf("Character 'U+%X' has width %d\n",thiswc,ucwidth);
+
+	int ucwidth = wcwidth(thiswc);
+	//printf("Character 'U+%X' has width %d\n",thiswc,ucwidth);
+
+	if (column + ucwidth > width) { column = width;} else {
 	
-	column += ucwidth;
+	if ((utf8char_in_set(uc,spaces,25) == -1) || (column != 0)) { column += ucwidth; colbyte+=r; } else lastcol = iter+r; //will not add char if line starts with a space.
+
 	iter+=r;
-	colbyte+=r;
-	l = strend - (char *) iter;
+	//colbyte+=r;
+	l = strend - (char *) iter; }
 
 	if (column >= width) {
 
 	    int tocopy = (lastdelim ? (endline-lastcol) : colbyte);
 
 	    if (bytesleft < (tocopy+1)) { tocopy = bytesleft-1; r = 0; }
+
+	    tocopy = utf8_strnlen(lastcol,tocopy);
 	    
 	    strncat(res,lastcol,tocopy);
 	    if (r) strncat(res,"\n",1);
