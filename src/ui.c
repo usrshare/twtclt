@@ -2,10 +2,13 @@
 
 #include <stdlib.h>
 #include <pthread.h>
+#include <stdint.h>
 
 #include "twitter.h"
 #include "ui.h"
 #include "stringex.h"
+
+const uint8_t colwidth = 32;
 
 int init_ui(){
 	initscr();
@@ -43,7 +46,15 @@ char* splittext(char* origstring, char* separators) {
 }
 
 WINDOW* tweetpad(struct t_tweet* tweet) {
-	if (tweet == NULL) return NULL;
+    if (tweet == NULL) return NULL;
+    char tweettext[400];
+
+    struct t_tweet* ot = (tweet->retweeted_status_id ? tht_search(tweet->retweeted_status_id) : tweet ); //original tweet
+
+    char* text = parse_tweet_entities(ot);
+    
+
+    
 
 	
 	

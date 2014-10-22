@@ -31,7 +31,7 @@ int reltimestr(time_t tweettime, char* outstr) {
 
     if (timediff < 60) { value = timediff; append = "s";} else
 	if (timediff < 3600) { value = timediff / 60; append = "m";} else
-	    if (timediff < 3600*24) { value = timediff / 3600; append = "h";} else
+	    if (timediff < 3600*24) { value = timediff / 3600; append = "h";} else norel = 1;
 
     if (norel) { strftime(res,8,"%d %b",noreltime); } else {
 	snprintf(res,8,"%d%s",value,append);

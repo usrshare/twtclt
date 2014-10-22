@@ -49,11 +49,11 @@ struct t_entity {
 
 struct t_account {
     //this structure refers to twitter log-in accounts
-    char* name; //acct screen name
-    int userid; //acct user id
-    char* tkey; //token key
-    char* tsct; //token secret
-    int auth; //is authorized(access token) or not(req token)?
+    char name[16]; //acct screen name
+    uint64_t userid; //acct user id
+    char tkey[128]; //token key
+    char tsct[128]; //token secret
+    uint8_t auth; //is authorized(access token) or not(req token)?
     struct btree* timelinebt; //timeline btree.
     struct btree* userbt; //user btree.
     struct btree* mentionbt; //mention btree.

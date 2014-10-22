@@ -1,6 +1,6 @@
 // vim: cin:sts=4:sw=4 
 
-#include <stdint.h>
+#include <inttypes.h>
 #include <stdlib.h>
 #include <string.h>
 #include <errno.h>
@@ -188,9 +188,9 @@ void userdel(struct t_user* ptr) {
 
 struct t_account* newAccount() {
     struct t_account* na = malloc(sizeof (struct t_account));
-    na->name = NULL;
-    na->tkey = NULL;
-    na->tsct = NULL;
+    memset(na->name,'\0',sizeof na->name);
+    memset(na->tkey,'\0',sizeof na->tkey);
+    memset(na->tsct,'\0',sizeof na->tsct);
     na->auth = 0;
     na->timelinebt = bt_create();
     na->userbt = bt_create();
@@ -246,8 +246,8 @@ int request_token(struct t_account* acct) {
 
     printf("key: %s, secret: %s\n",tkey,tsct);
 
-    acct->tkey = tkey;
-    acct->tsct = tsct;
+    strncpy(acct->tkey,tkey,128);
+    strncpy(acct->tsct,tsct,128);
 
     for (int i=0; i<rc; i++) free(rv[i]); //free ALL the strings!
 
@@ -280,8 +280,6 @@ int oauth_verify(struct t_account* acct, int pin) {
 	printf("Invalid PIN. PIN is supposed to be a 7-digit number.\n");
 	return 1; }
     int r = sprintf(verify_url,"%s%07d",twt_apin,pin);
-
-    assert(r == 7);
 
     char* req_url = NULL;
     char* postarg = NULL;
@@ -325,14 +323,14 @@ int oauth_verify(struct t_account* acct, int pin) {
     }
 
     acct->auth = 1;
-    acct->tkey = tkey;
-    acct->tsct = tsct;
-    acct->name = name;
+    strncpy(acct->tkey,tkey,128);
+    strncpy(acct->tsct,tsct,128);
+    strncpy(acct->name,name,16);
     if (uid != NULL) acct->userid = strtol(uid,NULL,10);
 
     free(uid);
 
-    printf("logged in as %s (uid %u)\n",name,acct->userid);
+    printf("logged in as %s (uid %" PRId64 ")\n",name,acct->userid);
 
     for (int i=0; i<rc; i++) free(rv[i]); //free ALL the strings!
 
@@ -735,7 +733,7 @@ int load_timeline(struct t_account* acct) {
 int save_accounts() {
     FILE* db = fopen("accounts.db","w"); if (db == NULL) { perror("fopen"); return 1;}
     for (int i=0; i < acct_n; i++)
-	fprintf(db,"%d %s %s %s %d\n",acctlist[i]->userid,acctlist[i]->name,acctlist[i]->tkey,acctlist[i]->tsct,acctlist[i]->auth);
+	fprintf(db,"%" PRId64 " %s %s %s %d\n",acctlist[i]->userid,acctlist[i]->name,acctlist[i]->tkey,acctlist[i]->tsct,acctlist[i]->auth);
 
     fflush(db);
     fclose(db);
@@ -744,13 +742,16 @@ int save_accounts() {
 int load_accounts() {
     FILE* db = fopen("accounts.db","r"); if (db == NULL) { perror("fopen"); if (errno != ENOENT) return 1; else return 0; }
     int userid = 0, auth = 0;
-    char name[100], tkey[100], tsct[100];
+    char name[16], tkey[128], tsct[128];
     while (!feof(db)) {
-	int r = fscanf(db,"%d %100s %100s %100s %d\n",&userid,name,tkey,tsct,&auth);
+	int r = fscanf(db,"%d %16s %128s %128s %d\n",&userid,name,tkey,tsct,&auth);
 	if (r != 5) { printf("%d fields returned instead of 5\n",r); return 1;}
 	struct t_account* na = newAccount();
 	na->userid = userid; na->auth = auth;
-	na->name = strdup(name); na->tkey = strdup(tkey); na->tsct = strdup(tsct);
+
+	strncpy(na->name,name,16);
+	strncpy(na->tkey,tkey,128);
+	strncpy(na->tsct,tsct,128);
 	add_acct(na);
     }
     fclose(db);

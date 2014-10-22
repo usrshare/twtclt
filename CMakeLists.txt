@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
 project(twtclt)
 
-set (CMAKE_C_FLAGS "-std=gnu99 -D_DEFAULT_SOURCE -D_XOPEN_SOURCE=500 -Wall -Wextra")
+set (CMAKE_C_FLAGS "-std=gnu99 -D_DEFAULT_SOURCE -D_XOPEN_SOURCE=500 -Wall -Wextra -Wno-deprecated-declarations")
 
 set_source_files_properties(tags PROPERTIES GENERATED true)
 
