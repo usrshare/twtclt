@@ -8,6 +8,7 @@
 
 WINDOW* titlebar;
 WINDOW* statusbar;
+WINDOW* colarea;
 
 uint8_t columns;
 
@@ -24,5 +25,9 @@ void* windowthread(void* param);
 
 int draw_cards();
 void draw_tweet(struct t_tweet* tweet);
+
+void drawcol_cb(uint64_t id, void* ctx);
+void draw_column(int column, int scrollback, struct btree* timeline);
+WINDOW* tweetpad(struct t_tweet* tweet, int* linecount);
 
 #endif

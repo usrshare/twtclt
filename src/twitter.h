@@ -5,6 +5,7 @@
 #include <search.h>
 #include <complex.h>
 #include <time.h>
+#include "globals.h"
 #include "hashtable.h"
 #include "btree.h"
 #include <json-c/json.h>

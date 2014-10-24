@@ -11,6 +11,13 @@
 
 const uint8_t colwidth = 32;
 
+struct drawcol_ctx{
+    int curline;
+    int column;
+    int scrollback;
+};
+
+
 int init_ui(){
     initscr();
 
@@ -34,7 +41,15 @@ int init_ui(){
 
     keypad(stdscr, TRUE);
     titlebar = newwin(1,COLS,0,0);
+    wbkgd(titlebar,COLOR_PAIR(1));
+    wprintw(titlebar,"twtclt");
+    wrefresh(titlebar);
     statusbar = newwin(1,COLS,(LINES-1),0);
+    wbkgd(statusbar,COLOR_PAIR(1));
+    wrefresh(titlebar);
+    colarea = newwin((LINES-2),COLS,1,0);
+    wbkgd(colarea,L'░'|COLOR_PAIR(1));
+    wrefresh(colarea);
     return 0;
 }
 
@@ -50,6 +65,51 @@ char* splittext(char* origstring, char* separators) {
     return NULL;
 }
 
+void drawcol_cb(uint64_t id, void* ctx) {
+
+    struct drawcol_ctx *dc = (struct drawcol_ctx *) ctx;
+
+    struct t_tweet* tt = tht_search(id);
+
+    int lines;
+
+    WINDOW* tp = tweetpad(tt,&lines);
+
+    if ((dc->curline + lines >= dc->scrollback) && (dc->curline - dc->scrollback <= LINES-3)) {
+
+	int skipy = -(dc->curline - dc->scrollback);
+	int topy = ( (dc->curline - dc->scrollback > 0) ? (dc->curline - dc->scrollback) : 0);
+	int boty = ( (dc->curline - dc->scrollback + lines <= LINES-1) ? (dc->curline - dc->scrollback + lines) : LINES-2);
+
+
+	prefresh(tp,skipy,0,topy+1,(dc->column * colwidth),boty,colwidth);
+
+    }
+
+    dc->curline += lines;
+
+    //wgetch(tp);
+
+    delwin(tp);
+
+    tweetdel(tt);
+
+    return;
+
+}
+
+void draw_column(int column, int scrollback, struct btree* timeline) {
+    //btree should contain tweet IDs.
+
+    struct drawcol_ctx dc = {0,column,scrollback};
+
+    bt_read(timeline, drawcol_cb, &dc, desc);
+
+    //doupdate();
+
+
+} 
+
 WINDOW* tweetpad(struct t_tweet* tweet, int* linecount) {
     if (tweet == NULL) return NULL;
     char tweettext[400];
@@ -57,7 +117,7 @@ WINDOW* tweetpad(struct t_tweet* tweet, int* linecount) {
     struct t_tweet* ot = (tweet->retweeted_status_id ? tht_search(tweet->retweeted_status_id) : tweet ); //original tweet
 
     char* text = parse_tweet_entities(ot);
-    
+
     struct t_user* rtu = uht_search(ot->user_id);
 
     char* usn = rtu->screen_name;
@@ -71,15 +131,17 @@ WINDOW* tweetpad(struct t_tweet* tweet, int* linecount) {
     // RT by screen name | time
     // ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
 
-    int lines = countlines(tweettext,400)+6;
+    int textlines = countlines(tweettext,400);
+
+    int lines = (tweet->retweeted_status_id ? textlines + 6 : textlines + 4);
 
     WINDOW* tp = newpad(lines, colwidth);
 
     wbkgd(tp,COLOR_PAIR(3));
-    
+
     wattron(tp,A_BOLD);
     if (tweet->retweeted_status_id) wattron(tp,COLOR_PAIR(4)); else wattron(tp,COLOR_PAIR(3));
-        for (int i=0; i < colwidth; i++) {
+    for (int i=0; i < colwidth; i++) {
 	waddstr(tp,"▀");
     }
     wattroff(tp,A_BOLD);
@@ -92,16 +154,31 @@ WINDOW* tweetpad(struct t_tweet* tweet, int* linecount) {
     reltimestr(ot->created_at,reltime);
     mvwaddstr(tp,1,colwidth-1-strlen(reltime),reltime);
 
-    WINDOW* textpad = subpad(tp,lines-6,colwidth-1,3,1);
+    WINDOW* textpad = subpad(tp,textlines,colwidth-1,3,1);
 
     mvwaddstr(textpad,0,0,tweettext);
 
     touchwin(tp);
 
-        if (tweet->retweeted_status_id) {
-	mvwprintw(tp,lines-2,1,"RT by somebody");
-    }
+    if (tweet->retweeted_status_id) {
+
+	struct t_user* rtu = uht_search(tweet->user_id); 
+
+	char* rtusn = (rtu ? rtu->screen_name : "(unknown)");
+
+	mvwprintw(tp,lines-2,1,"RT by @%s",rtusn);
+
+	userdel(rtu);
     
+    	char rttime[8];
+	reltimestr(tweet->created_at,rttime);
+	mvwaddstr(tp,lines-2,colwidth-1-strlen(rttime),rttime);
+
+
+
+
+    }
+
     wbkgdset(tp,COLOR_PAIR(7));
 
     wattroff(tp,COLOR_PAIR(7));
@@ -126,8 +203,6 @@ void draw_tweet(struct t_tweet* tweet) {
     WINDOW* tp = tweetpad(tweet,&lines);
 
     prefresh(tp,0,0,0,0,lines,colwidth);
-
-    getch();
 
     wclear(tp);
 

@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <locale.h>
 #include <unistd.h>
+#include "globals.h"
 #include "twitter.h"
 #include "twt_time.h"
 #include "ui.h"
@@ -96,13 +97,18 @@ int main(int argc, char* argv[])
 
 	//parse arguments with getopt here.
 
-	int c=0, qparam = 0, use_curses=0;
+	int c=0, qparam = 0,waitkey=0;
 
-	while ( (c = getopt(argc,argv,":chvq:")) != -1) {
+	use_curses = 0;
+
+	while ( (c = getopt(argc,argv,":cdhvq:")) != -1) {
 
 	    switch (c) {
 		case 'c':
 		    use_curses = 1;
+		    break;
+		case 'd':
+		    waitkey = 1;
 		    break;
 		case 'h':
 		    show_help();
@@ -129,6 +135,8 @@ int main(int argc, char* argv[])
 
 	//end parse argumets with getopt here.
 
+	if (waitkey) getchar();
+
 	inithashtables();
 
 	acct_n = 0;
@@ -144,12 +152,12 @@ int main(int argc, char* argv[])
 	load_timeline(acctlist[0]);
 
 	if (use_curses) 
-	    bt_read(acctlist[0]->timelinebt,print_nc_tweet,NULL,desc); else 
+	    draw_column(0,0,acctlist[0]->timelinebt); else 
 		bt_read(acctlist[0]->timelinebt,print_tweet,NULL,desc);
 
 	save_accounts();
 
-	if (use_curses) destroy_ui();
+	if (use_curses) {wgetch(statusbar); destroy_ui();}
 
 	//FIXME: right now, the program tests strings for length
 

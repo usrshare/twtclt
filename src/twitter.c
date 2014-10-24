@@ -8,6 +8,7 @@
 #include <time.h>
 #include <mojibake.h>
 #include <assert.h>
+#include "log.h"
 #include "twitter.h"
 #include "hashtable.h"
 #include "stringex.h"
@@ -221,7 +222,7 @@ int request_token(struct t_account* acct) {
 
     int rc = oauth_split_url_parameters(reply,&rv);
 
-    if (rc != 3) { printf("twitter's request_token is supposed to return 3 values.\n"); }
+    if (rc != 3) { lprintf("twitter's request_token is supposed to return 3 values.\n"); }
 
     char *tkey = NULL, *tsct = NULL;
 
@@ -235,8 +236,8 @@ int request_token(struct t_account* acct) {
     }
 
     if ((tkey == NULL) || (tsct == NULL)) {
-	printf("token key or secret not found in reply\n");
-	printf("full reply:%s\n",reply);
+	lprintf("token key or secret not found in reply\n");
+	lprintf("full reply:%s\n",reply);
 	free(reply);
 	if (tkey) free(tkey);
 	if (tsct) free(tsct);
@@ -244,7 +245,7 @@ int request_token(struct t_account* acct) {
 	return 2;
     }
 
-    printf("key: %s, secret: %s\n",tkey,tsct);
+    lprintf("key: %s, secret: %s\n",tkey,tsct);
 
     strncpy(acct->tkey,tkey,128);
     strncpy(acct->tsct,tsct,128);
@@ -258,7 +259,7 @@ int request_token(struct t_account* acct) {
 int authorize(struct t_account* acct, char** url) {
     // STEP 2 of oauth process. Return a URL which should be opened in the browser to get the PIN.
     if (acct->auth == 1) {
-	printf("This account is already authorized.\n");
+	lprintf("This account is already authorized.\n");
 	return 1;
     }
 
@@ -297,7 +298,7 @@ int oauth_verify(struct t_account* acct, int pin) {
 
     int rc = oauth_split_url_parameters(reply,&rv);
 
-    if (rc != 3) { printf("twitter's request_token is supposed to return 3 values.\n"); }
+    if (rc != 3) { lprintf("twitter's request_token is supposed to return 3 values.\n"); }
 
     char *tkey = NULL, *tsct = NULL, *name = NULL, *uid = NULL;
 
@@ -312,8 +313,8 @@ int oauth_verify(struct t_account* acct, int pin) {
     }
 
     if ((tkey == NULL) || (tsct == NULL)) {
-	printf("token key or secret not found in reply\n");
-	printf("full reply:%s\n",reply);
+	lprintf("token key or secret not found in reply\n");
+	lprintf("full reply:%s\n",reply);
 	free(reply);
 	if (tkey) free(tkey);
 	if (tsct) free(tsct);
@@ -330,7 +331,7 @@ int oauth_verify(struct t_account* acct, int pin) {
 
     free(uid);
 
-    printf("logged in as %s (uid %" PRId64 ")\n",name,acct->userid);
+    lprintf("logged in as %s (uid %" PRId64 ")\n",name,acct->userid);
 
     for (int i=0; i<rc; i++) free(rv[i]); //free ALL the strings!
 
@@ -488,7 +489,7 @@ struct t_entity** load_tweet_entities(json_object* entities_obj, int* out_entity
 	fv = json_object_iter_peek_value(&it_c);
 	ft = json_object_get_type(fv);
 
-	if (ft != json_type_array) printf("%s's type is %s instead of array\n", fn, json_type_to_name(ft));
+	if (ft != json_type_array) lprintf("%s's type is %s instead of array\n", fn, json_type_to_name(ft));
 
 	if (s_eq(fn,"hashtags")) et=hashtag;
 	if (s_eq(fn,"symbols")) et=symbol;
@@ -625,7 +626,7 @@ uint64_t parse_json_user(struct t_account* acct, json_object* user, int perspect
 
     //printf("Parsed user %lld.\n",id);
 
-    int r = uht_insert(&nu,no_replace); if (r != 0) printf("uht_insert tweet returned %d\n",r);
+    int r = uht_insert(&nu,no_replace); if (r != 0) lprintf("uht_insert tweet returned %d\n",r);
 
     return nu.id;
 }
@@ -657,7 +658,7 @@ uint64_t parse_json_tweet(struct t_account* acct, json_object* tweet, int perspe
 
 
     //printf("Parsed tweet %lld.\n",id);
-    int r = tht_insert(&nt,no_replace); if (r != 0) printf("tht_insert tweet returned %d\n",r);
+    int r = tht_insert(&nt,no_replace); if (r != 0) lprintf("tht_insert tweet returned %d\n",r);
     return nt.id;
 }
 
@@ -677,7 +678,7 @@ int parse_timeline(struct t_account* acct, enum timelinetype tt, char* timeliner
     //WOOHOO! we have json_object. let's parse it. it's an array, by the way.
 
     if (json_object_get_type(timeline) != json_type_array) {
-	printf("Something is wrong. Timeline's JSON isn't an array, but a %s\n",json_type_to_name(json_object_get_type(timeline))); return 1; }
+	lprintf("Something is wrong. Timeline's JSON isn't an array, but a %s\n",json_type_to_name(json_object_get_type(timeline))); return 1; }
 
     int tla_len = json_object_array_length(timeline);
 
@@ -717,7 +718,7 @@ int load_timeline_ext(struct t_account* acct, enum timelinetype tt, int since_id
 
     if (!reply) return 1;
 
-    printf("Received a reply.\n");
+    lprintf("Received a reply.\n");
 
     parse_timeline(acct, tt, reply);
 
@@ -745,7 +746,7 @@ int load_accounts() {
     char name[16], tkey[128], tsct[128];
     while (!feof(db)) {
 	int r = fscanf(db,"%d %16s %128s %128s %d\n",&userid,name,tkey,tsct,&auth);
-	if (r != 5) { printf("%d fields returned instead of 5\n",r); return 1;}
+	if (r != 5) { lprintf("%d fields returned instead of 5\n",r); return 1;}
 	struct t_account* na = newAccount();
 	na->userid = userid; na->auth = auth;
 
