@@ -28,6 +28,18 @@ int addAccount() {
 		return 0;
 }
 
+void print_nc_tweet(uint64_t id, void* ctx) {
+
+    struct t_tweet* tt = tht_search(id);
+
+    draw_tweet(tt);
+	
+    tweetdel(tt);
+    
+    return;
+}
+
+
 void print_tweet(uint64_t id, void* ctx) {
 
     struct t_tweet* tt = tht_search(id);
@@ -84,11 +96,14 @@ int main(int argc, char* argv[])
 
 	//parse arguments with getopt here.
 
-	int c=0, qparam = 0;
+	int c=0, qparam = 0, use_curses=0;
 
-	while ( (c = getopt(argc,argv,":hvq:")) != -1) {
+	while ( (c = getopt(argc,argv,":chvq:")) != -1) {
 
 	    switch (c) {
+		case 'c':
+		    use_curses = 1;
+		    break;
 		case 'h':
 		    show_help();
 		    exit(0);
@@ -124,16 +139,17 @@ int main(int argc, char* argv[])
 
 	printf("%d accounts loaded.\n",acct_n);
 
-	//init_ui();
+	if (use_curses) init_ui();
 
 	load_timeline(acctlist[0]);
 
-	bt_read(acctlist[0]->timelinebt,print_tweet,NULL,desc);
+	if (use_curses) 
+	    bt_read(acctlist[0]->timelinebt,print_nc_tweet,NULL,desc); else 
+		bt_read(acctlist[0]->timelinebt,print_tweet,NULL,desc);
 
 	save_accounts();
 
-	//destroy_ui();
-
+	if (use_curses) destroy_ui();
 
 	//FIXME: right now, the program tests strings for length
 

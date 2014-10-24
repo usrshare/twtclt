@@ -23,5 +23,6 @@ int destroy_ui();
 void* windowthread(void* param);
 
 int draw_cards();
+void draw_tweet(struct t_tweet* tweet);
 
 #endif

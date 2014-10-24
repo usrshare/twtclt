@@ -95,6 +95,7 @@ struct t_tweet {
     int perspectival;
     time_t retrieved_on;
 };
+
 struct t_user {
     int contributors_enabled;
     time_t created_at;
