@@ -170,14 +170,19 @@ int main(int argc, char* argv[])
 	    switch(k) {
 
 		case 'j':
-		case 66:
+		case KEY_DOWN:
 		    scrollback++;
 		    draw_column(0,scrollback,acctlist[0]->timelinebt); break;
 		case 'k':
-		case 65:
+		case KEY_UP:
 		    if (scrollback > 0) scrollback--;
 		    draw_column(0,scrollback,acctlist[0]->timelinebt); break;
-		    break;
+		case KEY_NPAGE:
+		    scrollback+=(LINES-2);
+		    draw_column(0,scrollback,acctlist[0]->timelinebt); break;
+		case KEY_PPAGE:
+		    scrollback-=(LINES-2); if (scrollback < 0) scrollback = 0;
+		    draw_column(0,scrollback,acctlist[0]->timelinebt); break;
 		case 'q':
 		    destroy_ui(); return 0;
 		    break;

@@ -40,11 +40,13 @@ int init_ui(){
     init_pair(7,COLOR_WHITE,COLOR_BLUE); //mention indication
 
     keypad(stdscr, TRUE);
+
     titlebar = newwin(1,COLS,0,0);
     wbkgd(titlebar,COLOR_PAIR(1));
     wprintw(titlebar,"twtclt");
     wrefresh(titlebar);
     statusbar = newwin(1,COLS,(LINES-1),0);
+    keypad(statusbar, TRUE);
     wbkgd(statusbar,COLOR_PAIR(1));
     wrefresh(titlebar);
     colarea = newwin((LINES-2),COLS,1,0);
