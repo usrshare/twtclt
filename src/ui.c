@@ -82,7 +82,7 @@ void drawcol_cb(uint64_t id, void* ctx) {
 	int boty = ( (dc->curline - dc->scrollback + lines <= LINES-1) ? (dc->curline - dc->scrollback + lines) : LINES-2);
 
 
-	prefresh(tp,skipy,0,topy+1,(dc->column * colwidth),boty,colwidth);
+	pnoutrefresh(tp,skipy,0,topy+1,(dc->column * colwidth),boty,colwidth);
 
     }
 
@@ -105,7 +105,7 @@ void draw_column(int column, int scrollback, struct btree* timeline) {
 
     bt_read(timeline, drawcol_cb, &dc, desc);
 
-    //doupdate();
+    doupdate();
 
 
 } 

@@ -135,6 +135,10 @@ struct t_tweet* tweetdup(struct t_tweet* orig) {
     if (orig->text) new->text = strdup(orig->text);
     if (orig->source) new->source = strdup(orig->source);
     //if (orig->lang) new->lang = strdup(orig->lang);
+    if (orig->entities != NULL) {
+	new->entities = malloc(sizeof(struct t_entity*) * orig->entity_count);
+	for (int i=0; i<orig->entity_count; i++)
+	    new->entities[i] = entitydup(orig->entities[i]); }
     return new;
 }
 struct t_user* userdup(struct t_user* orig) {
