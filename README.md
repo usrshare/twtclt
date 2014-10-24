@@ -12,7 +12,7 @@ However, **libmojibake** has to be compiled manually. Before compiling **twtclt*
     $ cd libmojibake
     $ make
 
-After doing so, **twtclt** will be able to statically link **libmojibake**. Right now, compiling **twtclt** only takes one command:
+After doing so, **twtclt** will be able to statically link **libmojibake**. Right now, compiling **twtclt** only takes two commands:
 
     $ cmake .
     $ make
