@@ -14,6 +14,7 @@ However, **libmojibake** has to be compiled manually. Before compiling **twtclt*
 
 After doing so, **twtclt** will be able to statically link **libmojibake**. Right now, compiling **twtclt** only takes one command:
 
+    $ cmake .
     $ make
 
 As a result, the executable file **twtclt** will appear in the directory.
