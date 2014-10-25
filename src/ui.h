@@ -6,6 +6,24 @@
 #ifndef _UI_H_
 #define _UI_H_
 
+struct tweetbox {
+    int acct_id;
+    uint64_t id;
+    WINDOW* window;
+    int lines;
+};
+
+struct hashtable* padht; //tweet cache hash table.
+
+int pad_insert(struct tweetbox* tbox);
+int pad_delete(uint64_t id);
+struct tweetbox* pad_search_acct(int acct_id, uint64_t id);
+struct tweetbox* pad_search_ind(uint64_t id, int index);
+struct tweetbox* pad_search(uint64_t id);
+
+uint64_t fullid(uint8_t acct, uint64_t id);
+
+
 WINDOW* titlebar;
 WINDOW* statusbar;
 WINDOW* colarea;

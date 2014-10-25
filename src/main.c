@@ -4,6 +4,7 @@
 #include <locale.h>
 #include <unistd.h>
 #include "globals.h"
+#include "log.h"
 #include "twitter.h"
 #include "twt_time.h"
 #include "ui.h"
@@ -28,7 +29,7 @@ int addAccount() {
 
     return 0;
 }
-
+/*
 void print_nc_tweet(uint64_t id, void* ctx) {
 
     struct t_tweet* tt = tht_search(id);
@@ -78,7 +79,7 @@ void print_tweet(uint64_t id, void* ctx) {
 
     return;
 }
-
+*/
 void show_help() {
     printf("todo help\n");
 }
@@ -93,7 +94,8 @@ int main(int argc, char* argv[])
 
     //Used to ensure proper work of wcwidth in utf8.c. Will probably fail on non-UTF8 locales.
     char* locale = setlocale(LC_ALL,"");
-
+    
+    lprintf("Locale set to %s\n",locale);
 
     //parse arguments with getopt here.
 
@@ -133,6 +135,8 @@ int main(int argc, char* argv[])
 	}
     }
 
+    if (qparam) printf("qparam is %d\n",qparam);
+
     //end parse argumets with getopt here.
 
     if (waitkey) getchar();
@@ -152,8 +156,8 @@ int main(int argc, char* argv[])
     load_timeline(acctlist[0]);
 
     if (use_curses) 
-	draw_column(0,0,acctlist[0]->timelinebt); else 
-	    bt_read(acctlist[0]->timelinebt,print_tweet,NULL,desc);
+	draw_column(0,0,acctlist[0]->timelinebt); /*else 
+	    bt_read(acctlist[0]->timelinebt,print_tweet,NULL,desc); */
 
     save_accounts();
 

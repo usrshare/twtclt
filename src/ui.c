@@ -5,6 +5,7 @@
 #include <stdint.h>
 
 #include "twitter.h"
+#include "twt_time.h"
 #include "ui.h"
 #include "stringex.h"
 #include "utf8.h"
@@ -16,6 +17,37 @@ struct drawcol_ctx{
     int column;
     int scrollback;
 };
+
+int pad_insert(struct tweetbox* pad){
+
+    return ht_insert(padht,pad->id,pad);
+
+}
+int pad_delete(uint64_t id){
+    struct tweetbox* old = (struct tweetbox*)ht_search(padht,id);
+    int r = ht_delete(padht,id);
+    if (old != NULL) { delwin(old->window); free(old); }
+    return r;
+
+}
+
+struct tweetbox* pad_search_acct(int acct_id, uint64_t id){
+
+    int n=0; struct tweetbox* pad = NULL;
+    do {
+	pad = pad_search_ind(id,n);
+	if (pad->acct_id == acct_id) return pad; else n++;}
+    while (pad != NULL);
+
+    return NULL;
+}
+struct tweetbox* pad_search_ind(uint64_t id, int index){
+    return (struct tweetbox*)ht_search_ind(padht,id,index);
+}
+struct tweetbox* pad_search(uint64_t id){
+    return pad_search_ind(id,0);
+}
+
 
 
 int init_ui(){
@@ -29,6 +61,9 @@ int init_ui(){
 
     start_color();	
     cbreak();
+    
+    padht = ht_create2(1024,0); //this hash table allows for non-unique items. 
+
     noecho();
 
     init_pair(1,COLOR_CYAN,COLOR_BLUE); //background
@@ -54,28 +89,41 @@ int init_ui(){
     wrefresh(colarea);
     return 0;
 }
-
 int destroy_ui(){
     endwin();
     return 0;
-}
-
-char* splittext(char* origstring, char* separators) {
-    char* newstring = malloc(1); newstring[0] = '\0';
-
-
-    return NULL;
 }
 
 void drawcol_cb(uint64_t id, void* ctx) {
 
     struct drawcol_ctx *dc = (struct drawcol_ctx *) ctx;
 
-    struct t_tweet* tt = tht_search(id);
+    WINDOW* tp;
 
     int lines;
 
-    WINDOW* tp = tweetpad(tt,&lines);
+    struct tweetbox* pad = pad_search(id); 
+
+    if (pad != NULL) {tp = pad->window; lines = pad->lines;} else {
+
+    struct tweetbox* newpad = malloc(sizeof(struct tweetbox));
+
+    newpad->acct_id = 0;
+    newpad->id = id;
+
+    struct t_tweet* tt = tht_search(id);
+
+    tp = tweetpad(tt,&lines);
+
+    newpad->window = tp;
+    newpad->lines = lines;
+    
+    tweetdel(tt);
+
+    int r = pad_insert(newpad);
+    if (r != 0) lprintf("pad_insert returned %d\n",r);
+
+    }
 
     if ((dc->curline + lines >= dc->scrollback) && (dc->curline - dc->scrollback <= LINES-3)) {
 
@@ -90,11 +138,6 @@ void drawcol_cb(uint64_t id, void* ctx) {
 
     dc->curline += lines;
 
-    //wgetch(tp);
-
-    delwin(tp);
-
-    tweetdel(tt);
 
     return;
 
@@ -213,6 +256,7 @@ void draw_tweet(struct t_tweet* tweet) {
 
 void* windowthread(void* param)
 {
+    printf("Called windowthread with param %p\n",param);
     return NULL;
 }
 
