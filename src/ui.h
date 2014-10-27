@@ -11,6 +11,7 @@ struct tweetbox {
     uint64_t id;
     WINDOW* window;
     int lines;
+    int selected;
 };
 
 struct hashtable* padht; //tweet cache hash table.
@@ -46,6 +47,6 @@ void draw_tweet(struct t_tweet* tweet);
 
 void drawcol_cb(uint64_t id, void* ctx);
 void draw_column(int column, int scrollback, struct btree* timeline);
-WINDOW* tweetpad(struct t_tweet* tweet, int* linecount);
+WINDOW* tweetpad(struct t_tweet* tweet, int* linecount, int selected);
 
 #endif

@@ -39,15 +39,7 @@ enum timelinetype {
     mentions,
 };
 
-struct t_entity {
-    enum entitytype type; //entity type
-    uint8_t index_s,index_e; //indices.
-    char* text; //text for #$, screen_name for @, url for urls/media
-    char* name; //name for @s, display_url for urls/media
-    char* url; //expanded_url for urls/media.
-    uint64_t id; //ID for mentions and media
-};
-
+// authentication info
 struct t_account {
     //this structure refers to twitter log-in accounts
     char name[16]; //acct screen name
@@ -58,6 +50,15 @@ struct t_account {
     struct btree* timelinebt; //timeline btree.
     struct btree* userbt; //user btree.
     struct btree* mentionbt; //mention btree.
+};
+
+struct t_entity {
+    enum entitytype type; //entity type
+    uint8_t index_s,index_e; //indices.
+    char* text; //text for #$, screen_name for @, url for urls/media
+    char* name; //name for @s, display_url for urls/media
+    char* url; //expanded_url for urls/media.
+    uint64_t id; //ID for mentions and media
 };
 struct t_timeline {
     struct t_timeline* next;
@@ -96,7 +97,6 @@ struct t_tweet {
     int perspectival;
     time_t retrieved_on;
 };
-
 struct t_user {
     int contributors_enabled;
     time_t created_at;
@@ -118,7 +118,7 @@ struct t_user {
     uint64_t listed_count;
     char* location;
     char* name;
-    int protected_; //not the C++ keyword
+    int user_protected; //field actually named "protected", renamed to avoid collisions with the C++ keyword
     char screen_name[16];
     int show_all_inline_media;
     int status_tweet_id;
@@ -132,7 +132,6 @@ struct t_user {
     int perspectival;
     time_t retrieved_on;
 };
-
 
 enum collision_behavior {
     no_replace,
@@ -179,6 +178,8 @@ int del_acct(struct t_account* acct);
 
 int load_timeline(struct t_account* acct);
 int load_timeline_ext(struct t_account* acct, enum timelinetype tt, int since_id, int max_id, int trim_user, int exclude_replies, int contributor_details, int include_entities);
+
+int load_config();
 
 int save_accounts();
 int load_accounts();

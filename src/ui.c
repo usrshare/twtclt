@@ -4,6 +4,7 @@
 #include <pthread.h>
 #include <stdint.h>
 
+#include "log.h"
 #include "twitter.h"
 #include "twt_time.h"
 #include "ui.h"
@@ -15,6 +16,7 @@ const uint8_t colwidth = 32;
 struct drawcol_ctx{
     int curline;
     int column;
+    int row; //number of tweet currently drawn
     int scrollback;
 };
 
@@ -74,6 +76,11 @@ int init_ui(){
     init_pair(6,COLOR_BLUE,COLOR_WHITE); //mention indication
     init_pair(7,COLOR_WHITE,COLOR_BLUE); //mention indication
 
+    if (COLORS >= 16) 
+	init_pair(8,COLOR_BLACK,COLOR_WHITE + 8); //selected bg
+    else
+	init_pair(8,COLOR_BLACK,COLOR_YELLOW);
+
     keypad(stdscr, TRUE);
 
     titlebar = newwin(1,COLS,0,0);
@@ -104,7 +111,9 @@ void drawcol_cb(uint64_t id, void* ctx) {
 
     struct tweetbox* pad = pad_search(id); 
 
-    if (pad != NULL) {tp = pad->window; lines = pad->lines;} else {
+    int cursel = ((dc->row == cur_row) && (dc->column == cur_col));
+
+    if ((pad != NULL) && (!cursel)) {tp = pad->window; lines = pad->lines;} else {
 
     struct tweetbox* newpad = malloc(sizeof(struct tweetbox));
 
@@ -113,15 +122,14 @@ void drawcol_cb(uint64_t id, void* ctx) {
 
     struct t_tweet* tt = tht_search(id);
 
-    tp = tweetpad(tt,&lines);
+    tp = tweetpad(tt,&lines,cursel);
 
     newpad->window = tp;
     newpad->lines = lines;
     
     tweetdel(tt);
-
-    int r = pad_insert(newpad);
-    if (r != 0) lprintf("pad_insert returned %d\n",r);
+    
+    if (!cursel) { int r = pad_insert(newpad); if (r != 0) lprintf("pad_insert returned %d\n",r); }
 
     }
 
@@ -137,7 +145,7 @@ void drawcol_cb(uint64_t id, void* ctx) {
     }
 
     dc->curline += lines;
-
+    dc->row++;
 
     return;
 
@@ -146,7 +154,7 @@ void drawcol_cb(uint64_t id, void* ctx) {
 void draw_column(int column, int scrollback, struct btree* timeline) {
     //btree should contain tweet IDs.
 
-    struct drawcol_ctx dc = {0,column,scrollback};
+    struct drawcol_ctx dc = { .curline=0, .column=column, .row=0, .scrollback=scrollback};
 
     bt_read(timeline, drawcol_cb, &dc, desc);
 
@@ -155,7 +163,7 @@ void draw_column(int column, int scrollback, struct btree* timeline) {
 
 } 
 
-WINDOW* tweetpad(struct t_tweet* tweet, int* linecount) {
+WINDOW* tweetpad(struct t_tweet* tweet, int* linecount, int selected) {
     if (tweet == NULL) return NULL;
     char tweettext[400];
 
@@ -182,7 +190,9 @@ WINDOW* tweetpad(struct t_tweet* tweet, int* linecount) {
 
     WINDOW* tp = newpad(lines, colwidth);
 
-    wbkgd(tp,COLOR_PAIR(3));
+    wbkgd(tp,(selected ? COLOR_PAIR(8) : COLOR_PAIR(3)));
+
+    if (selected) wattron(tp,COLOR_PAIR(8));
 
     wattron(tp,A_BOLD);
     if (tweet->retweeted_status_id) wattron(tp,COLOR_PAIR(4)); else wattron(tp,COLOR_PAIR(3));
@@ -191,7 +201,7 @@ WINDOW* tweetpad(struct t_tweet* tweet, int* linecount) {
     }
     wattroff(tp,A_BOLD);
     if (tweet->retweeted_status_id) wattroff(tp,COLOR_PAIR(4)); else wattroff(tp,COLOR_PAIR(3));
-    wattron(tp,COLOR_PAIR(3));
+    wattron(tp,(selected ? COLOR_PAIR(8) : COLOR_PAIR(3)));
     mvwaddch(tp,1,1,'@');
     mvwaddstr(tp,1,2,usn);
 
@@ -225,6 +235,8 @@ WINDOW* tweetpad(struct t_tweet* tweet, int* linecount) {
     }
 
     wbkgdset(tp,COLOR_PAIR(7));
+    
+    if (selected) wattroff(tp,COLOR_PAIR(8));
 
     wattroff(tp,COLOR_PAIR(7));
     wmove(tp,lines-1,0);
@@ -245,7 +257,7 @@ void draw_tweet(struct t_tweet* tweet) {
 
     int lines;
 
-    WINDOW* tp = tweetpad(tweet,&lines);
+    WINDOW* tp = tweetpad(tweet,&lines,0);
 
     prefresh(tp,0,0,0,0,lines,colwidth);
 

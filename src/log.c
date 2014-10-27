@@ -6,6 +6,8 @@
 #include <stdio.h>
 #include <time.h>
 #include <stdarg.h>
+#include <errno.h>
+#include <string.h>
 
 int lprintf(const char *fmt, ...)
 {
@@ -23,4 +25,15 @@ int lprintf(const char *fmt, ...)
 	fflush(logfile);
     } else printf(fmt,args);
     return 0;
+}
+
+void lperror(const char *s) {
+
+    //this is not a thread-safe function, I know.
+	
+    if ((s == NULL) || (*s == '\0'))
+	lprintf("%s\n",strerror(errno));
+    else
+	lprintf("%s: %s\n",s,strerror(errno));
+    return;
 }

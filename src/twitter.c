@@ -8,6 +8,7 @@
 #include <time.h>
 #include <mojibake.h>
 #include <assert.h>
+#include "config.h"
 #include "log.h"
 #include "twitter.h"
 #include "hashtable.h"
@@ -284,7 +285,7 @@ int oauth_verify(struct t_account* acct, int pin) {
     if ((pin < 0) || (pin > 9999999)) {
 	printf("Invalid PIN. PIN is supposed to be a 7-digit number.\n");
 	return 1; }
-    int r = sprintf(verify_url,"%s%07d",twt_apin,pin);
+    sprintf(verify_url,"%s%07d",twt_apin,pin);
 
     char* req_url = NULL;
     char* postarg = NULL;
@@ -525,7 +526,7 @@ int fill_json_user_fields(struct t_user* nu, enum json_type ft, const char* fn, 
     if (s_eq(fn,"screen_name") && ft) { strncpy(nu->screen_name,json_object_get_string(fv),16); return 0; }
     if (s_eq(fn,"followers_count")) { nu->followers_count = json_object_get_int64(fv); return 0; }
     if (s_eq(fn,"friends_count")) { nu->friends_count = json_object_get_int64(fv); return 0; }
-    if (s_eq(fn,"protected")) { nu->protected_ = json_object_get_nullbool(fv); return 0; }
+    if (s_eq(fn,"protected")) { nu->user_protected = json_object_get_nullbool(fv); return 0; }
     if (s_eq(fn,"geo_enabled")) { nu->geo_enabled = json_object_get_nullbool(fv); return 0; }
     if (s_eq(fn,"verified")) { nu->verified = json_object_get_nullbool(fv); return 0; }
     if (s_eq(fn,"contributors_enabled")) { nu->contributors_enabled = json_object_get_nullbool(fv); return 0; }
@@ -736,7 +737,7 @@ int load_timeline(struct t_account* acct) {
 }
 
 int save_accounts() {
-    FILE* db = fopen("accounts.db","w"); if (db == NULL) { perror("fopen"); return 1;}
+    FILE* db = cfopen("accounts.db","w"); if ((db == NULL) && (errno != ENOENT)) { perror("fopen"); return 1;}
     for (int i=0; i < acct_n; i++)
 	fprintf(db,"%" PRId64 " %s %s %s %d\n",acctlist[i]->userid,acctlist[i]->name,acctlist[i]->tkey,acctlist[i]->tsct,acctlist[i]->auth);
 
@@ -745,7 +746,7 @@ int save_accounts() {
     return 0;
 }
 int load_accounts() {
-    FILE* db = fopen("accounts.db","r"); if (db == NULL) { perror("fopen"); if (errno != ENOENT) return 1; else return 0; }
+    FILE* db = cfopen("accounts.db","r"); if (db == NULL) { perror("fopen"); if (errno != ENOENT) return 1; else return 0; }
     int userid = 0, auth = 0;
     char name[16], tkey[128], tsct[128];
     while (!feof(db)) {

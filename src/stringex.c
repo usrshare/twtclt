@@ -31,7 +31,7 @@ char* addparam_int(char* orig, const char* parname, int64_t parvalue, int addq) 
     return addparam(orig,parname,pvchr,addq);
 }
 
-int countlines (char* text, int maxlen) {
+int countlines (char* text, size_t maxlen) {
 
     int sl = (maxlen ? (maxlen < strlen(text) ? maxlen : strlen(text)) : strlen(text)); //if 0, strlen, otherwise the lesser of maxlen and strlen.
 

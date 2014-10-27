@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <locale.h>
 #include <unistd.h>
+#include "config.h"
 #include "globals.h"
 #include "log.h"
 #include "twitter.h"
@@ -31,31 +32,22 @@ int addAccount() {
 }
 /*
 void print_nc_tweet(uint64_t id, void* ctx) {
-
     struct t_tweet* tt = tht_search(id);
-
     draw_tweet(tt);
-
     tweetdel(tt);
-
     return;
 }
-
 
 void print_tweet(uint64_t id, void* ctx) {
 
     struct t_tweet* tt = tht_search(id);
-
     struct t_tweet* ot = NULL;
 
     if (tt == NULL) return;
-
     if (tt->retweeted_status_id != 0) ot = tht_search(tt->retweeted_status_id);
 
     struct t_tweet* rt = (ot ? ot : tt);
-
     struct t_user* rtu = uht_search(rt->user_id);
-
     struct t_user* otu = uht_search(tt->user_id);
 
     char reltime[12];
@@ -81,21 +73,23 @@ void print_tweet(uint64_t id, void* ctx) {
 }
 */
 void show_help() {
-    printf("todo help\n");
+    printf("      -c | use ncurses-based interface\n");
+    printf("      -d | wait for a keypress before starting. useful for debugging\n");
+    printf("      -h | show this help screen\n");
+    printf("      -v | show the version screen\n");
+    printf(" -q12345 | useless param for getopt testing\n");
 }
 
 void show_version() {
-    printf("todo version\n");
+    printf("twtclt doesn't have a version number at this point.\n");
 }
 
-
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]){
 
     //Used to ensure proper work of wcwidth in utf8.c. Will probably fail on non-UTF8 locales.
-    char* locale = setlocale(LC_ALL,"");
+    /* char* locale = */ setlocale(LC_ALL,"");
     
-    lprintf("Locale set to %s\n",locale);
+    //lprintf("Locale set to %s\n",locale);
 
     //parse arguments with getopt here.
 
@@ -141,6 +135,9 @@ int main(int argc, char* argv[])
 
     if (waitkey) getchar();
 
+    load_config();
+
+
     inithashtables();
 
     acct_n = 0;
@@ -163,6 +160,8 @@ int main(int argc, char* argv[])
 
     int scrollback = 0;
 
+    cur_col = 0; cur_row = 0;
+
     if (use_curses) {
 
 	while(1) {
@@ -174,12 +173,16 @@ int main(int argc, char* argv[])
 	    switch(k) {
 
 		case 'j':
-		case KEY_DOWN:
 		    scrollback++;
 		    draw_column(0,scrollback,acctlist[0]->timelinebt); break;
 		case 'k':
-		case KEY_UP:
 		    if (scrollback > 0) scrollback--;
+		    draw_column(0,scrollback,acctlist[0]->timelinebt); break;
+		case KEY_DOWN:
+		    cur_row++;
+		    draw_column(0,scrollback,acctlist[0]->timelinebt); break;
+		case KEY_UP:
+		    if (cur_row >= 1) cur_row--; else cur_row = 0;
 		    draw_column(0,scrollback,acctlist[0]->timelinebt); break;
 		case KEY_NPAGE:
 		    scrollback+=(LINES-2);

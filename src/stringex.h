@@ -9,4 +9,4 @@ char* strrecat(char* orig, const char* append);
 char* strnrecat(char* orig, const char* append, size_t n);
 char* addparam(char* orig, const char* parname, const char* parvalue, int addq);
 char* addparam_int(char* orig, const char* parname, int64_t parvalue, int addq);
-int countlines (char* text, int maxlen);
+int countlines (char* text, size_t maxlen);
