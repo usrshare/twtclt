@@ -50,8 +50,6 @@ struct tweetbox* pad_search(uint64_t id){
     return pad_search_ind(id,0);
 }
 
-
-
 int init_ui(){
     initscr();
 
@@ -158,6 +156,8 @@ void draw_column(int column, int scrollback, struct btree* timeline) {
 
     bt_read(timeline, drawcol_cb, &dc, desc);
 
+    //int curcol = (dc.curline - dc.scrollback);
+    
     doupdate();
 
 
@@ -266,8 +266,7 @@ void draw_tweet(struct t_tweet* tweet) {
     delwin(tp);
 }
 
-void* windowthread(void* param)
-{
+void* windowthread(void* param){
     printf("Called windowthread with param %p\n",param);
     return NULL;
 }
