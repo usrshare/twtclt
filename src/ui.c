@@ -50,6 +50,12 @@ struct tweetbox* pad_search(uint64_t id){
     return pad_search_ind(id,0);
 }
 
+void* uithreadfunc(void* param) {
+    printf("called with %p\n",param);
+    return NULL;
+
+}
+
 int init_ui(){
     initscr();
 
@@ -61,7 +67,7 @@ int init_ui(){
 
     start_color();	
     cbreak();
-    
+
     padht = ht_create2(1024,0); //this hash table allows for non-unique items. 
 
     noecho();
@@ -85,15 +91,64 @@ int init_ui(){
     wbkgd(titlebar,COLOR_PAIR(1));
     wprintw(titlebar,"twtclt");
     wrefresh(titlebar);
-    statusbar = newwin(1,COLS,(LINES-1),0);
-    keypad(statusbar, TRUE);
+
+    statusbar = newwin(1,(COLS-1),(LINES-1),0);
     wbkgd(statusbar,COLOR_PAIR(1));
+
+    inputbar = newwin(1,1,(LINES-1),(COLS-1));
+    keypad(inputbar, TRUE);
+    wbkgd(inputbar,COLOR_PAIR(1));
+
     wrefresh(titlebar);
     colarea = newwin((LINES-2),COLS,1,0);
     wbkgd(colarea,L'░'|COLOR_PAIR(1));
     wrefresh(colarea);
+    wrefresh(statusbar);
+    wrefresh(inputbar);
+
+    // -- test.
+
+    int scrollback = 0;
+
+    cur_col = 0; cur_row = 0;
+
+    while(1) {
+
+	mvwprintw(statusbar,0,0,"Ready.\n"); wrefresh(statusbar);
+
+	int k = wgetch(inputbar); 
+
+	mvwprintw(statusbar,0,0,"Hit key %d\n",k); wrefresh(statusbar);
+
+	switch(k) {
+
+	    case 'j':
+		scrollback++; break;
+	    case 'k':
+		if (scrollback > 0) scrollback--; break;
+	    case KEY_DOWN:
+		cur_row++; break;
+	    case KEY_UP:
+		if (cur_row >= 1) cur_row--; else cur_row = 0; break;
+	    case KEY_NPAGE:
+		scrollback+=(LINES-2); break;
+	    case KEY_PPAGE:
+		scrollback-=(LINES-2); if (scrollback < 0) scrollback = 0; break;
+	    case 'r':
+		load_timeline(acctlist[0]); break;
+		break;
+	    case 'q':
+		destroy_ui(); exit(0);
+		break;
+	}
+    
+	draw_column(0,scrollback,acctlist[0]->timelinebt);
+    }
+
     return 0;
 }
+
+
 int destroy_ui(){
     endwin();
     return 0;
@@ -113,21 +168,21 @@ void drawcol_cb(uint64_t id, void* ctx) {
 
     if ((pad != NULL) && (!cursel)) {tp = pad->window; lines = pad->lines;} else {
 
-    struct tweetbox* newpad = malloc(sizeof(struct tweetbox));
+	struct tweetbox* newpad = malloc(sizeof(struct tweetbox));
 
-    newpad->acct_id = 0;
-    newpad->id = id;
+	newpad->acct_id = 0;
+	newpad->id = id;
 
-    struct t_tweet* tt = tht_search(id);
+	struct t_tweet* tt = tht_search(id);
 
-    tp = tweetpad(tt,&lines,cursel);
+	tp = tweetpad(tt,&lines,cursel);
 
-    newpad->window = tp;
-    newpad->lines = lines;
-    
-    tweetdel(tt);
-    
-    if (!cursel) { int r = pad_insert(newpad); if (r != 0) lprintf("pad_insert returned %d\n",r); }
+	newpad->window = tp;
+	newpad->lines = lines;
+
+	tweetdel(tt);
+
+	if (!cursel) { int r = pad_insert(newpad); if (r != 0) lprintf("pad_insert returned %d\n",r); }
 
     }
 
@@ -136,7 +191,6 @@ void drawcol_cb(uint64_t id, void* ctx) {
 	int skipy = -(dc->curline - dc->scrollback);
 	int topy = ( (dc->curline - dc->scrollback > 0) ? (dc->curline - dc->scrollback) : 0);
 	int boty = ( (dc->curline - dc->scrollback + lines <= LINES-1) ? (dc->curline - dc->scrollback + lines) : LINES-2);
-
 
 	pnoutrefresh(tp,skipy,0,topy+1,(dc->column * colwidth),boty,colwidth);
 
@@ -157,7 +211,7 @@ void draw_column(int column, int scrollback, struct btree* timeline) {
     bt_read(timeline, drawcol_cb, &dc, desc);
 
     //int curcol = (dc.curline - dc.scrollback);
-    
+
     doupdate();
 
 
@@ -224,8 +278,8 @@ WINDOW* tweetpad(struct t_tweet* tweet, int* linecount, int selected) {
 	mvwprintw(tp,lines-2,1,"RT by @%s",rtusn);
 
 	userdel(rtu);
-    
-    	char rttime[8];
+
+	char rttime[8];
 	reltimestr(tweet->created_at,rttime);
 	mvwaddstr(tp,lines-2,colwidth-1-strlen(rttime),rttime);
 
@@ -235,7 +289,7 @@ WINDOW* tweetpad(struct t_tweet* tweet, int* linecount, int selected) {
     }
 
     wbkgdset(tp,COLOR_PAIR(7));
-    
+
     if (selected) wattroff(tp,COLOR_PAIR(8));
 
     wattroff(tp,COLOR_PAIR(7));

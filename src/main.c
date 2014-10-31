@@ -73,7 +73,6 @@ void print_tweet(uint64_t id, void* ctx) {
 }
 */
 void show_help() {
-    printf("      -c | use ncurses-based interface\n");
     printf("      -d | wait for a keypress before starting. useful for debugging\n");
     printf("      -h | show this help screen\n");
     printf("      -v | show the version screen\n");
@@ -95,14 +94,9 @@ int main(int argc, char* argv[]){
 
     int c=0, qparam = 0,waitkey=0;
 
-    use_curses = 0;
-
     while ( (c = getopt(argc,argv,":cdhvq:")) != -1) {
 
 	switch (c) {
-	    case 'c':
-		use_curses = 1;
-		break;
 	    case 'd':
 		waitkey = 1;
 		break;
@@ -148,54 +142,7 @@ int main(int argc, char* argv[]){
 
     printf("%d accounts loaded.\n",acct_n);
 
-    if (use_curses) init_ui();
-
-    load_timeline(acctlist[0]);
-
-    if (use_curses) 
-	draw_column(0,0,acctlist[0]->timelinebt); /*else 
-	    bt_read(acctlist[0]->timelinebt,print_tweet,NULL,desc); */
-
-    save_accounts();
-
-    int scrollback = 0;
-
-    cur_col = 0; cur_row = 0;
-
-    if (use_curses) {
-
-	while(1) {
-
-	    int k = wgetch(statusbar); 
-
-	    mvwprintw(statusbar,0,0,"Hit key %d\n",k);
-
-	    switch(k) {
-
-		case 'j':
-		    scrollback++;
-		    draw_column(0,scrollback,acctlist[0]->timelinebt); break;
-		case 'k':
-		    if (scrollback > 0) scrollback--;
-		    draw_column(0,scrollback,acctlist[0]->timelinebt); break;
-		case KEY_DOWN:
-		    cur_row++;
-		    draw_column(0,scrollback,acctlist[0]->timelinebt); break;
-		case KEY_UP:
-		    if (cur_row >= 1) cur_row--; else cur_row = 0;
-		    draw_column(0,scrollback,acctlist[0]->timelinebt); break;
-		case KEY_NPAGE:
-		    scrollback+=(LINES-2);
-		    draw_column(0,scrollback,acctlist[0]->timelinebt); break;
-		case KEY_PPAGE:
-		    scrollback-=(LINES-2); if (scrollback < 0) scrollback = 0;
-		    draw_column(0,scrollback,acctlist[0]->timelinebt); break;
-		case 'q':
-		    destroy_ui(); return 0;
-		    break;
-	    }
-	}
-    }
+    init_ui();
 
     //FIXME: right now, the program tests strings for length
 

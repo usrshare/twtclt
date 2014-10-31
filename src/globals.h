@@ -4,7 +4,5 @@
 
 FILE* logfile;
 
-int use_curses;
-
 #endif
 

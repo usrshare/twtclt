@@ -27,6 +27,7 @@ uint64_t fullid(uint8_t acct, uint64_t id);
 
 WINDOW* titlebar;
 WINDOW* statusbar;
+WINDOW* inputbar;
 WINDOW* colarea;
 
 uint8_t columns;
