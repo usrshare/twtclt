@@ -17,6 +17,7 @@ add_executable (twtclt
 		src/hashtable.c
 		src/btree.c
 		src/stringex.c
+		src/twt_struct.c
 		src/twt_time.c
 		src/config.c
 		src/log.c
