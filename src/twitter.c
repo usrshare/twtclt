@@ -12,7 +12,6 @@
 #include "config.h"
 #include "log.h"
 #include "twitter.h"
-#include "hashtable.h"
 #include "stringex.h"
 #include "twt_time.h"
 
@@ -512,7 +511,6 @@ uint64_t parse_json_tweet(struct t_account* acct, json_object* tweet, int perspe
     int r = tht_insert(&nt,no_replace); if (r != 0) lprintf("tht_insert tweet returned %d\n",r);
     return nt.id;
 }
-
 int parse_timeline(struct t_account* acct, enum timelinetype tt, char* timelinereply) {
 
     struct json_tokener* jt = json_tokener_new();
@@ -577,7 +575,6 @@ int load_timeline_ext(struct t_account* acct, enum timelinetype tt, int since_id
     free(twtcur);
     return 0;
 }
-
 int load_timeline(struct t_account* acct) {
     return load_timeline_ext(acct,0,0,0,0,0,0,0);
 }

@@ -177,6 +177,8 @@ void drawcol_cb(uint64_t id, void* ctx) {
 
 	tp = tweetpad(tt,&lines,cursel);
 
+	if (tp == NULL) {free(newpad); return;}
+
 	newpad->window = tp;
 	newpad->lines = lines;
 
