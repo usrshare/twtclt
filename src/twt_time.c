@@ -21,7 +21,7 @@ int reltimestr(time_t tweettime, char* outstr) {
     char res[8];
     memset(&res,0,8);
 
-    int value = 0; char* append = NULL; int norel = 0; /* int r = 0; */
+    int value = 0; char* append = NULL; int norel = 0, noval = 0;
 
     time_t curtime = time(NULL);
 
@@ -29,12 +29,14 @@ int reltimestr(time_t tweettime, char* outstr) {
 
     struct tm *noreltime = gmtime(&tweettime);
 
-    if (timediff < 60) { value = timediff; append = "s";} else
+    if (timediff < 60) { value = timediff; noval = 1; append = "<1m";} else
 	if (timediff < 3600) { value = timediff / 60; append = "m";} else
 	    if (timediff < 3600*24) { value = timediff / 3600; append = "h";} else norel = 1;
 
     if (norel) { strftime(res,8,"%d %b",noreltime); } else {
-	snprintf(res,8,"%d%s",value,append);
+
+	if (noval) snprintf(res,8,"%s",append); else snprintf(res,8,"%d%s",value,append);
+
     }
 
     strncpy(outstr,res,8);

@@ -51,7 +51,54 @@ struct tweetbox* pad_search(uint64_t id){
 }
 
 void* uithreadfunc(void* param) {
-    printf("called with %p\n",param);
+    // -- test.
+
+    int scrollback = 0;
+
+    cur_col = 0; cur_row = 0;
+
+    while(1) {
+
+	mvwprintw(statusbar,0,0,"Ready.\n"); wrefresh(statusbar);
+
+	int k = wgetch(inputbar); 
+
+	mvwprintw(statusbar,0,0,"Hit key %d\n",k); wrefresh(statusbar);
+
+	switch(k) {
+
+	    case 'j':
+		// scroll down a line
+		scrollback++; break;
+	    case 'k':
+		// scroll up a line
+		if (scrollback > 0) scrollback--; break;
+	    case 'l':
+		// Show all links in the selected tweet
+	    case KEY_DOWN:
+		// Select next tweet, TODO make scrolling follow selection
+		cur_row++; break;
+	    case KEY_UP:
+		// Select previous tweet, TODO make scrolling follow selection
+		if (cur_row >= 1) cur_row--; else cur_row = 0; break;
+	    case KEY_NPAGE:
+		// Scroll one page down
+		scrollback+=(LINES-2); break;
+	    case KEY_PPAGE:
+		// Scroll one page up
+		scrollback-=(LINES-2); if (scrollback < 0) scrollback = 0; break;
+	    case 'r':
+		// Load timeline. Tweets will be added.
+		load_timeline(acctlist[0]); break;
+		break;
+	    case 'q':
+		destroy_ui(); exit(0);
+		break;
+	}
+
+	draw_column(0,scrollback,acctlist[0]->timelinebt);
+    }
+
     return NULL;
 
 }
@@ -106,44 +153,8 @@ int init_ui(){
     wrefresh(statusbar);
     wrefresh(inputbar);
 
-    // -- test.
-
-    int scrollback = 0;
-
-    cur_col = 0; cur_row = 0;
-
-    while(1) {
-
-	mvwprintw(statusbar,0,0,"Ready.\n"); wrefresh(statusbar);
-
-	int k = wgetch(inputbar); 
-
-	mvwprintw(statusbar,0,0,"Hit key %d\n",k); wrefresh(statusbar);
-
-	switch(k) {
-
-	    case 'j':
-		scrollback++; break;
-	    case 'k':
-		if (scrollback > 0) scrollback--; break;
-	    case KEY_DOWN:
-		cur_row++; break;
-	    case KEY_UP:
-		if (cur_row >= 1) cur_row--; else cur_row = 0; break;
-	    case KEY_NPAGE:
-		scrollback+=(LINES-2); break;
-	    case KEY_PPAGE:
-		scrollback-=(LINES-2); if (scrollback < 0) scrollback = 0; break;
-	    case 'r':
-		load_timeline(acctlist[0]); break;
-		break;
-	    case 'q':
-		destroy_ui(); exit(0);
-		break;
-	}
-    
-	draw_column(0,scrollback,acctlist[0]->timelinebt);
-    }
+    pthread_t keythread;
+    int r = pthread_create(&keythread,NULL,uithreadfunc,NULL);
 
     return 0;
 }
@@ -175,6 +186,8 @@ void drawcol_cb(uint64_t id, void* ctx) {
 
 	struct t_tweet* tt = tht_search(id);
 
+	if (tt == NULL) return;
+
 	tp = tweetpad(tt,&lines,cursel);
 
 	newpad->window = tp;
@@ -200,6 +213,10 @@ void drawcol_cb(uint64_t id, void* ctx) {
     dc->row++;
 
     return;
+
+}
+
+void makecolumn(int column, struct btree* timeline) {
 
 }
 
