@@ -144,6 +144,8 @@ int main(int argc, char* argv[]){
 
     init_ui();
 
+    pause();
+
     //FIXME: right now, the program tests strings for length
 
     //utf8_test();
