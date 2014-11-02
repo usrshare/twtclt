@@ -11,7 +11,7 @@
 #include "stringex.h"
 #include "utf8.h"
 
-const uint8_t colwidth = 32;
+uint8_t colwidth = 40; //default width, may be larger
 
 struct drawcol_ctx{
     int curline;
@@ -33,6 +33,15 @@ int pad_delete(uint64_t id){
 
 }
 
+int findcolwidth(int minwidth) {
+
+    int c = (COLS / minwidth);
+
+    if (c == 0) return COLS;
+
+    return (COLS / c);
+}
+
 struct tweetbox* pad_search_acct(int acct_id, uint64_t id){
 
     int n=0; struct tweetbox* pad = NULL;
@@ -48,6 +57,10 @@ struct tweetbox* pad_search_ind(uint64_t id, int index){
 }
 struct tweetbox* pad_search(uint64_t id){
     return pad_search_ind(id,0);
+}
+
+int scrolltotweet (int col, int row) {
+
 }
 
 void* uithreadfunc(void* param) {
@@ -111,6 +124,8 @@ int init_ui(){
 	printf("This terminal has no color support. twtclt requires color to work.\n");
 	exit(1);
     }
+
+    colwidth = findcolwidth(40);
 
     start_color();	
     cbreak();

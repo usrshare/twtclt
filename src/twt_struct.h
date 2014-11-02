@@ -65,6 +65,7 @@ struct t_tweet {
     time_t retrieved_on;
 };
 struct t_user {
+    struct t_account* acct;
     int contributors_enabled;
     time_t created_at;
     int default_profile;

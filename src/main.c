@@ -31,47 +31,47 @@ int addAccount() {
     return 0;
 }
 /*
-void print_nc_tweet(uint64_t id, void* ctx) {
-    struct t_tweet* tt = tht_search(id);
-    draw_tweet(tt);
-    tweetdel(tt);
-    return;
-}
+   void print_nc_tweet(uint64_t id, void* ctx) {
+   struct t_tweet* tt = tht_search(id);
+   draw_tweet(tt);
+   tweetdel(tt);
+   return;
+   }
 
-void print_tweet(uint64_t id, void* ctx) {
+   void print_tweet(uint64_t id, void* ctx) {
 
-    struct t_tweet* tt = tht_search(id);
-    struct t_tweet* ot = NULL;
+   struct t_tweet* tt = tht_search(id);
+   struct t_tweet* ot = NULL;
 
-    if (tt == NULL) return;
-    if (tt->retweeted_status_id != 0) ot = tht_search(tt->retweeted_status_id);
+   if (tt == NULL) return;
+   if (tt->retweeted_status_id != 0) ot = tht_search(tt->retweeted_status_id);
 
-    struct t_tweet* rt = (ot ? ot : tt);
-    struct t_user* rtu = uht_search(rt->user_id);
-    struct t_user* otu = uht_search(tt->user_id);
+   struct t_tweet* rt = (ot ? ot : tt);
+   struct t_user* rtu = uht_search(rt->user_id);
+   struct t_user* otu = uht_search(tt->user_id);
 
-    char reltime[12];
-    char rttime[12];
+   char reltime[12];
+   char rttime[12];
 
-    char* rusn = (rtu ? rtu->screen_name : "(unknown)");
-    char* ousn = (otu ? otu->screen_name : "(unknown)");
+   char* rusn = (rtu ? rtu->screen_name : "(unknown)");
+   char* ousn = (otu ? otu->screen_name : "(unknown)");
 
-    if (ot) reltimestr(tt->created_at,rttime);
-    reltimestr(rt->created_at,reltime);
+   if (ot) reltimestr(tt->created_at,rttime);
+   reltimestr(rt->created_at,reltime);
 
-    char* text = parse_tweet_entities(rt);
+   char* text = parse_tweet_entities(rt);
 
-    if (ot) printf("%16s | %s [%s] (RT by %s %s)\n",rusn,text,reltime,ousn,rttime); else printf("%16s | %s [%s]\n",rusn,text,reltime);
+   if (ot) printf("%16s | %s [%s] (RT by %s %s)\n",rusn,text,reltime,ousn,rttime); else printf("%16s | %s [%s]\n",rusn,text,reltime);
 
-    tweetdel(tt);
-    userdel(otu);
-    if (ot) tweetdel(ot);
-    if (ot) userdel(rtu);
-    free(text);
+   tweetdel(tt);
+   userdel(otu);
+   if (ot) tweetdel(ot);
+   if (ot) userdel(rtu);
+   free(text);
 
-    return;
-}
-*/
+   return;
+   }
+ */
 void show_help() {
     printf("      -d | wait for a keypress before starting. useful for debugging\n");
     printf("      -h | show this help screen\n");
@@ -87,7 +87,7 @@ int main(int argc, char* argv[]){
 
     //Used to ensure proper work of wcwidth in utf8.c. Will probably fail on non-UTF8 locales.
     /* char* locale = */ setlocale(LC_ALL,"");
-    
+
     //lprintf("Locale set to %s\n",locale);
 
     //parse arguments with getopt here.
@@ -131,16 +131,15 @@ int main(int argc, char* argv[]){
 
     load_config();
 
-
     inithashtables();
 
     acct_n = 0;
     int r = load_accounts();
-    if (r != 0) { printf("load_accounts returned %d\n",r); return 1;}
+    if (r != 0) { lprintf("load_accounts returned %d\n",r); return 1;}
 
     if (acct_n == 0) addAccount();
 
-    printf("%d accounts loaded.\n",acct_n);
+    lprintf("%d accounts loaded.\n",acct_n);
 
     init_ui();
 

@@ -300,7 +300,7 @@ char* parse_tweet_entities(struct t_tweet* tweet) {
 		case mention:
 		    append1 = "@"; append2 = addent->text; break;
 		case url:
-		    append1 = ""; append2 = addent->url; break;
+		    append1 = ""; append2 = addent->name; break;
 		case media:
 		    append1 = ""; append2 = addent->text; break;
 		default:
@@ -471,6 +471,8 @@ uint64_t parse_json_user(struct t_account* acct, json_object* user, int perspect
 
     }
 
+    nu.acct = acct;
+
     nu.perspectival = perspectival;
     nu.retrieved_on = time(NULL); 
 
@@ -503,6 +505,8 @@ uint64_t parse_json_tweet(struct t_account* acct, json_object* tweet, int perspe
 
     }
 
+    nt.acct = acct;
+
     nt.perspectival = perspectival;
     nt.retrieved_on = time(NULL); 
 
@@ -521,7 +525,7 @@ int parse_timeline(struct t_account* acct, enum timelinetype tt, char* timeliner
 
     jerr = json_tokener_get_error(jt);
     if (jerr != json_tokener_success) {
-	fprintf(stderr,"Error: %s\n",json_tokener_error_desc(jerr));
+	lprintf("JSON Tokener Error: %s\n",json_tokener_error_desc(jerr));
     }
 
     //WOOHOO! we have json_object. let's parse it. it's an array, by the way.
