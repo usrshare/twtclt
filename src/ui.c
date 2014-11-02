@@ -60,7 +60,9 @@ struct tweetbox* pad_search(uint64_t id){
 }
 
 int scrolltotweet (int col, int row) {
-
+    printf("called with %d/%d\n",col,row);
+    //TODO
+    return 0;
 }
 
 void* uithreadfunc(void* param) {
@@ -103,7 +105,6 @@ void* uithreadfunc(void* param) {
 	    case 'r':
 		// Load timeline. Tweets will be added.
 		load_timeline(acctlist[0]); break;
-		break;
 	    case 'q':
 		destroy_ui(); exit(0);
 		break;
@@ -163,7 +164,7 @@ int init_ui(){
 
     wrefresh(titlebar);
     colarea = newwin((LINES-2),COLS,1,0);
-    wbkgd(colarea,L'░'|COLOR_PAIR(1));
+    wbkgd(colarea,ACS_CKBOARD | COLOR_PAIR(1));
     wrefresh(colarea);
     wrefresh(statusbar);
     wrefresh(inputbar);
@@ -180,6 +181,36 @@ int destroy_ui(){
     return 0;
 }
 
+void drawtwt_cb(uint64_t id, void* ctx) {
+    struct tweetbox* pad = pad_search(id); 
+
+    if (pad == NULL) {
+
+	WINDOW* tp; int lines;
+
+	struct tweetbox* newpad = malloc(sizeof(struct tweetbox));
+
+	newpad->acct_id = 0;
+	newpad->id = id;
+
+	struct t_tweet* tt = tht_search(id);
+	if (tt == NULL) return;
+
+	tp = tweetpad(tt,&lines,0);
+	if (tp == NULL) {free(newpad); return;}
+
+	newpad->window = tp;
+	newpad->lines = lines;
+
+	tweetdel(tt);
+
+	int r = pad_insert(newpad);
+	if (r != 0) lprintf("pad_insert returned %d\n",r);
+    }
+    return;
+}
+
+
 void drawcol_cb(uint64_t id, void* ctx) {
 
     struct drawcol_ctx *dc = (struct drawcol_ctx *) ctx;
@@ -192,29 +223,19 @@ void drawcol_cb(uint64_t id, void* ctx) {
 
     int cursel = ((dc->row == cur_row) && (dc->column == cur_col));
 
-    if ((pad != NULL) && (!cursel)) {tp = pad->window; lines = pad->lines;} else {
+    if (pad == NULL) return;
 
-	struct tweetbox* newpad = malloc(sizeof(struct tweetbox));
-
-	newpad->acct_id = 0;
-	newpad->id = id;
+    if (cursel) {
 
 	struct t_tweet* tt = tht_search(id);
-
 	if (tt == NULL) return;
 
-	tp = tweetpad(tt,&lines,cursel);
-
-	if (tp == NULL) {free(newpad); return;}
-
-	newpad->window = tp;
-	newpad->lines = lines;
+	tp = tweetpad(tt,&lines,1);
+	if (tp == NULL) return;
 
 	tweetdel(tt);
 
-	if (!cursel) { int r = pad_insert(newpad); if (r != 0) lprintf("pad_insert returned %d\n",r); }
-
-    }
+    } else { tp = pad->window; lines = pad->lines; }
 
     if ((dc->curline + lines >= dc->scrollback) && (dc->curline - dc->scrollback <= LINES-3)) {
 
@@ -240,15 +261,14 @@ void makecolumn(int column, struct btree* timeline) {
 void draw_column(int column, int scrollback, struct btree* timeline) {
     //btree should contain tweet IDs.
 
+    bt_read(timeline, drawtwt_cb, NULL, desc);
+    
     struct drawcol_ctx dc = { .curline=0, .column=column, .row=0, .scrollback=scrollback};
-
     bt_read(timeline, drawcol_cb, &dc, desc);
 
     //int curcol = (dc.curline - dc.scrollback);
 
     doupdate();
-
-
 } 
 
 WINDOW* tweetpad(struct t_tweet* tweet, int* linecount, int selected) {

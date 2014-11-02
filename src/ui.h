@@ -11,7 +11,6 @@ struct tweetbox {
     uint64_t id;
     WINDOW* window;
     int lines;
-    int selected;
 };
 
 struct hashtable* padht; //tweet cache hash table.
