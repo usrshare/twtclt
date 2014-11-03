@@ -123,7 +123,7 @@ int draw_all_columns() {
     for (int i=0; i < MAXCOLUMNS; i++) {
 
 	if (colset[i].acct != NULL) {
-	    
+
 	    draw_column(i,colset[i].scrollback,columns[i]);
 	}
     }
@@ -138,7 +138,7 @@ int reload_all_columns() {
 
 	if (colset[i].acct != NULL) {
 
-	load_timeline(columns[i],colset[i].acct,colset[i].tt,colset[i].userid,colset[i].customtype);	
+	    load_timeline(columns[i],colset[i].acct,colset[i].tt,colset[i].userid,colset[i].customtype);	
 
 	}
     }
@@ -161,23 +161,29 @@ void* uithreadfunc(void* param) {
 
 	switch(k) {
 
-	    case 'j':
+	    case 'J':
 		// scroll down a line
 		colset[cur_col].scrollback++; break;
-	    case 'k':
+	    case 'K':
 		// scroll up a line
 		if (colset[cur_col].scrollback > 0) colset[cur_col].scrollback--; break;
 	    case 'l':
 		// Show all links in the selected tweet
 	    case KEY_LEFT:
 		// Select next tweet, TODO make scrolling follow selection
-		if (cur_col > 0) cur_col--; break;
+		if (cur_col > 0) cur_col--;
+		cur_row = scrollto(cur_col,cur_row); 	
+		break;
 	    case KEY_RIGHT:
 		// Select previous tweet, TODO make scrolling follow selection
-		if (colset[cur_col+1].acct != NULL) cur_col++; break;
+		if (colset[cur_col+1].acct != NULL) cur_col++;
+		cur_row = scrollto(cur_col,cur_row); 	
+		break;
+	    case 'j':
 	    case KEY_DOWN:
 		// Select next tweet, TODO make scrolling follow selection
 		cur_row++; cur_row = scrollto(cur_col,cur_row); break;
+	    case 'k':
 	    case KEY_UP:
 		// Select previous tweet, TODO make scrolling follow selection
 		if (cur_row >= 1) cur_row--; else cur_row = 0; cur_row = scrollto(cur_col,cur_row); break;
@@ -371,7 +377,7 @@ void draw_column(int column, int scrollback, struct btree* timeline) {
     //btree should contain tweet IDs.
 
     bt_read(timeline, drawtwt_cb, NULL, desc);
-    
+
     struct drawcol_ctx dc = { .curline=0, .column=column, .row=0, .scrollback=scrollback};
     bt_read(timeline, drawcol_cb, &dc, desc);
 

@@ -361,7 +361,9 @@ int parse_timeline(struct btree* timeline, struct t_account* acct, enum timeline
     //WOOHOO! we have json_object. let's parse it. it's an array, by the way.
 
     if (json_object_get_type(timelineobj) != json_type_array) {
-	lprintf("Something is wrong. Timeline's JSON isn't an array, but a %s\n",json_type_to_name(json_object_get_type(timelineobj))); return 1; }
+	lprintf("Something is wrong. Timeline's JSON isn't an array, but a %s\n",json_type_to_name(json_object_get_type(timelineobj)));
+	lprintf("full reply:%s\n",timelinereply);
+	return 1; }
 
     int tla_len = json_object_array_length(timelineobj);
 
