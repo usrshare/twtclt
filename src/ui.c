@@ -118,6 +118,7 @@ void* uithreadfunc(void* param) {
 }
 
 int init_ui(){
+    cursesused = 1;
     initscr();
 
     if (has_colors() == FALSE) {
@@ -182,6 +183,9 @@ int destroy_ui(){
 }
 
 void drawtwt_cb(uint64_t id, void* ctx) {
+
+    //draws an individual tweet into its respective tweetbox, then stores the tweetbox in the pad hashtable.
+
     struct tweetbox* pad = pad_search(id); 
 
     if (pad == NULL) {

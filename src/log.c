@@ -10,6 +10,8 @@
 #include <errno.h>
 #include <string.h>
 
+int cursesused = 0;
+
 int lprintf(const char *fmt, ...)
 {
     if (logfile == NULL) {
@@ -21,7 +23,15 @@ int lprintf(const char *fmt, ...)
     va_list args;
     va_start(args, fmt);
 
-    fprintf(logfile,fmt,args);
+    vfprintf(logfile,fmt,args);
+
+    va_end(args);
+
+    if (!cursesused) {
+	va_start(args, fmt);
+	vprintf(fmt,args);
+	va_end(args);
+    }
     fflush(logfile);
     return 0;
 }

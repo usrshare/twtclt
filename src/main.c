@@ -75,6 +75,7 @@ int addAccount() {
 void show_help() {
     printf("      -d | wait for a keypress before starting. useful for debugging\n");
     printf("      -h | show this help screen\n");
+    printf("      -t | run tests and quit\n");
     printf("      -v | show the version screen\n");
     printf(" -q12345 | useless param for getopt testing\n");
 }
@@ -83,18 +84,21 @@ void show_version() {
     printf("twtclt doesn't have a version number at this point.\n");
 }
 
+int run_tests() {
+    bt_test();
+    return 0;
+}
+
 int main(int argc, char* argv[]){
 
     //Used to ensure proper work of wcwidth in utf8.c. Will probably fail on non-UTF8 locales.
     /* char* locale = */ setlocale(LC_ALL,"");
 
-    //lprintf("Locale set to %s\n",locale);
-
-    //parse arguments with getopt here.
+    load_config();
 
     int c=0, qparam = 0,waitkey=0;
 
-    while ( (c = getopt(argc,argv,":cdhvq:")) != -1) {
+    while ( (c = getopt(argc,argv,":cdhtvq:")) != -1) {
 
 	switch (c) {
 	    case 'd':
@@ -102,6 +106,10 @@ int main(int argc, char* argv[]){
 		break;
 	    case 'h':
 		show_help();
+		exit(0);
+		break;
+	    case 't':
+		run_tests();
 		exit(0);
 		break;
 	    case 'v':
@@ -129,7 +137,6 @@ int main(int argc, char* argv[]){
 
     if (waitkey) getchar();
 
-    load_config();
 
     inithashtables();
 
