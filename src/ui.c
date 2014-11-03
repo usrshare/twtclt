@@ -112,8 +112,6 @@ int reload_all_columns() {
 void* uithreadfunc(void* param) {
     // -- test.
 
-    int scrollback = 0;
-
     cur_col = 0; cur_row = 0;
 
     while(1) {
@@ -128,10 +126,10 @@ void* uithreadfunc(void* param) {
 
 	    case 'j':
 		// scroll down a line
-		scrollback++; break;
+		colset[cur_col].scrollback++; break;
 	    case 'k':
 		// scroll up a line
-		if (scrollback > 0) scrollback--; break;
+		if (colset[cur_col].scrollback > 0) colset[cur_col].scrollback--; break;
 	    case 'l':
 		// Show all links in the selected tweet
 	    case KEY_LEFT:
@@ -148,10 +146,10 @@ void* uithreadfunc(void* param) {
 		if (cur_row >= 1) cur_row--; else cur_row = 0; break;
 	    case KEY_NPAGE:
 		// Scroll one page down
-		scrollback+=(LINES-2); break;
+		(colset[cur_col].scrollback)+=(LINES-2); break;
 	    case KEY_PPAGE:
 		// Scroll one page up
-		scrollback-=(LINES-2); if (scrollback < 0) scrollback = 0; break;
+		(colset[cur_col].scrollback)-=(LINES-2); if ((colset[cur_col].scrollback) < 0) (colset[cur_col].scrollback) = 0; break;
 	    case 'r':
 		// Load timeline. Tweets will be added.
 		reload_all_columns(); break;
