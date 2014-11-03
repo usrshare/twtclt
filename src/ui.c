@@ -11,6 +11,8 @@
 #include "stringex.h"
 #include "utf8.h"
 
+#define MAXCOLUMNS 32
+
 uint8_t colwidth = 40; //default width, may be larger
 
 struct drawcol_ctx{
@@ -19,6 +21,17 @@ struct drawcol_ctx{
     int row; //number of tweet currently drawn
     int scrollback;
 };
+
+struct t_timelineset {
+    struct t_account* acct;
+    enum timelinetype tt;
+    uint64_t userid;
+    int scrollback;
+    char* customtype;
+}; //column settings
+
+struct btree* columns[MAXCOLUMNS]; //maximum 32 columns
+struct t_timelineset colset[MAXCOLUMNS];
 
 int pad_insert(struct tweetbox* pad){
 
@@ -65,6 +78,34 @@ int scrolltotweet (int col, int row) {
     return 0;
 }
 
+int draw_all_columns() {
+
+    for (int i=0; i < MAXCOLUMNS; i++) {
+
+	if (colset[i].acct != NULL) {
+	    
+	    draw_column(i,colset[i].scrollback,columns[i]);
+	}
+    }
+
+    return 0;
+}
+
+
+int reload_all_columns() {
+
+    for (int i=0; i < MAXCOLUMNS; i++) {
+
+	if (colset[i].acct != NULL) {
+
+	load_timeline(columns[i],colset[i].acct,colset[i].tt,colset[i].userid,colset[i].customtype);	
+
+	}
+    }
+
+    return 0;
+}
+
 void* uithreadfunc(void* param) {
     // -- test.
 
@@ -104,13 +145,14 @@ void* uithreadfunc(void* param) {
 		scrollback-=(LINES-2); if (scrollback < 0) scrollback = 0; break;
 	    case 'r':
 		// Load timeline. Tweets will be added.
-		load_timeline(acctlist[0]); break;
+		reload_all_columns(); break;
 	    case 'q':
 		destroy_ui(); exit(0);
 		break;
 	}
 
-	draw_column(0,scrollback,acctlist[0]->timelinebt);
+	draw_all_columns();
+	//draw_column(0,scrollback,acctlist[0]->timelinebt);
     }
 
     return NULL;
@@ -128,6 +170,18 @@ int init_ui(){
     }
 
     colwidth = findcolwidth(40);
+
+    for (int i=0; i<MAXCOLUMNS; i++) {
+	columns[i] = NULL;
+	colset[i].acct = NULL;
+	colset[i].tt = 0;
+	colset[i].customtype = NULL;
+    }
+
+    columns[0] = bt_create();
+    colset[0].acct = acctlist[0];
+    colset[0].tt = home;
+    colset[0].customtype = NULL;
 
     start_color();	
     cbreak();
@@ -172,6 +226,8 @@ int init_ui(){
 
     pthread_t keythread;
     int r = pthread_create(&keythread,NULL,uithreadfunc,NULL);
+
+    if (r != 0) lprintf("pthread_create returned %d\n",r);
 
     return 0;
 }

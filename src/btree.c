@@ -116,6 +116,7 @@ int _bt_remove(struct btree* bt, uint64_t id, struct btree* parent) {
 	    return 0;
 	    break;
     }
+    return 1;
 }
 
 int bt_remove(struct btree* bt, uint64_t id) {

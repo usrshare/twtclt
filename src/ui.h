@@ -29,7 +29,7 @@ WINDOW* statusbar;
 WINDOW* inputbar;
 WINDOW* colarea;
 
-uint8_t columns;
+uint8_t colcount;
 
 WINDOW* colpads;
 

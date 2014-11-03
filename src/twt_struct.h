@@ -17,6 +17,8 @@ enum timelinetype {
     home,
     user,
     mentions,
+    direct_messages,
+    search,
 };
 
 struct t_entity {
