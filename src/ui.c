@@ -14,6 +14,7 @@
 #define MAXCOLUMNS 32
 
 uint8_t colwidth = 40; //default width, may be larger
+uint8_t visiblecolumns = 1; //how many columns are visible side by side
 
 struct drawcol_ctx{
     int curline;
@@ -49,6 +50,8 @@ int pad_delete(uint64_t id){
 int findcolwidth(int minwidth) {
 
     int c = (COLS / minwidth);
+
+    if (c > 0) visiblecolumns = c;
 
     if (c == 0) return COLS;
 
@@ -131,6 +134,12 @@ void* uithreadfunc(void* param) {
 		if (scrollback > 0) scrollback--; break;
 	    case 'l':
 		// Show all links in the selected tweet
+	    case KEY_LEFT:
+		// Select next tweet, TODO make scrolling follow selection
+		if (cur_col > 0) cur_col--; break;
+	    case KEY_RIGHT:
+		// Select previous tweet, TODO make scrolling follow selection
+		if (colset[cur_col+1].acct != NULL) cur_col++; break;
 	    case KEY_DOWN:
 		// Select next tweet, TODO make scrolling follow selection
 		cur_row++; break;
@@ -182,6 +191,11 @@ int init_ui(){
     colset[0].acct = acctlist[0];
     colset[0].tt = home;
     colset[0].customtype = NULL;
+
+    columns[1] = bt_create();
+    colset[1].acct = acctlist[0];
+    colset[1].tt = mentions;
+    colset[1].customtype = NULL;
 
     start_color();	
     cbreak();
@@ -303,7 +317,7 @@ void drawcol_cb(uint64_t id, void* ctx) {
 	int topy = ( (dc->curline - dc->scrollback > 0) ? (dc->curline - dc->scrollback) : 0);
 	int boty = ( (dc->curline - dc->scrollback + lines <= LINES-1) ? (dc->curline - dc->scrollback + lines) : LINES-2);
 
-	pnoutrefresh(tp,skipy,0,topy+1,(dc->column * colwidth),boty,colwidth);
+	pnoutrefresh(tp,skipy,0,topy+1,(dc->column * colwidth),boty,(dc->column +1) *colwidth - 1);
 
     }
 
