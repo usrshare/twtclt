@@ -75,11 +75,48 @@ struct tweetbox* pad_search(uint64_t id){
     return pad_search_ind(id,0);
 }
 
-int scrolltotweet (int col, int row) {
-    printf("called with %d/%d\n",col,row);
-    //TODO
-    return 0;
+//---
+
+struct scrollto_ctx {
+    int topline;
+    int lines;
+    int rows;
+};
+
+void scrollto_btcb(uint64_t id, void* ctx) {
+    struct scrollto_ctx* sts = (struct scrollto_ctx*) ctx;
+
+    struct tweetbox* pad = pad_search(id);
+
+    if (pad == NULL) return;
+
+    sts->topline += sts->lines;
+    sts->lines = pad->lines;
+    sts->rows++;
+
+    return;
 }
+
+int scrollto (int col, int row) {
+    int t_top = 0, t_bot = 0; //tweet's top and bottom line
+
+    struct scrollto_ctx sts = {0,0,0};
+
+    int curel = 0;
+
+    bt_read2(columns[col],scrollto_btcb,&sts,desc,row+1,&curel);
+
+    //lprintf("COLS-2 = %d, topline = %d, lines = %d\n",(LINES-2),sts.topline,sts.lines);
+
+    if (colset[col].scrollback > sts.topline) colset[col].scrollback = sts.topline;
+
+    if (sts.topline - colset[col].scrollback + sts.lines > (LINES-2)) colset[col].scrollback = sts.topline + sts.lines - (LINES-2);
+
+    //TODO
+    return (sts.rows - 1);
+}
+
+//---
 
 int draw_all_columns() {
 
@@ -140,10 +177,10 @@ void* uithreadfunc(void* param) {
 		if (colset[cur_col+1].acct != NULL) cur_col++; break;
 	    case KEY_DOWN:
 		// Select next tweet, TODO make scrolling follow selection
-		cur_row++; break;
+		cur_row++; cur_row = scrollto(cur_col,cur_row); break;
 	    case KEY_UP:
 		// Select previous tweet, TODO make scrolling follow selection
-		if (cur_row >= 1) cur_row--; else cur_row = 0; break;
+		if (cur_row >= 1) cur_row--; else cur_row = 0; cur_row = scrollto(cur_col,cur_row); break;
 	    case KEY_NPAGE:
 		// Scroll one page down
 		(colset[cur_col].scrollback)+=(LINES-2); break;
