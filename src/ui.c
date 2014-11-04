@@ -13,6 +13,8 @@
 
 #define MAXCOLUMNS 32
 
+#define COLHEIGHT (LINES-3)
+
 uint8_t colwidth = 40; //default width, may be larger
 uint8_t visiblecolumns = 1; //how many columns are visible side by side
 
@@ -24,6 +26,7 @@ struct drawcol_ctx{
 };
 
 struct t_timelineset {
+    int enabled;
     struct t_account* acct;
     enum timelinetype tt;
     uint64_t userid;
@@ -110,7 +113,7 @@ int scrollto (int col, int row) {
 
     if (colset[col].scrollback > sts.topline) colset[col].scrollback = sts.topline;
 
-    if (sts.topline - colset[col].scrollback + sts.lines > (LINES-2)) colset[col].scrollback = sts.topline + sts.lines - (LINES-2);
+    if (sts.topline - colset[col].scrollback + sts.lines > COLHEIGHT) colset[col].scrollback = sts.topline + sts.lines - COLHEIGHT;
 
     //TODO
     return (sts.rows - 1);
@@ -122,7 +125,7 @@ int draw_all_columns() {
 
     for (int i=0; i < MAXCOLUMNS; i++) {
 
-	if (colset[i].acct != NULL) {
+	if (colset[i].enabled) {
 
 	    draw_column(i,colset[i].scrollback,columns[i]);
 	}
@@ -136,7 +139,7 @@ int reload_all_columns() {
 
     for (int i=0; i < MAXCOLUMNS; i++) {
 
-	if (colset[i].acct != NULL) {
+	if (colset[i].enabled) {
 
 	    load_timeline(columns[i],colset[i].acct,colset[i].tt,colset[i].userid,colset[i].customtype);	
 
@@ -176,7 +179,7 @@ void* uithreadfunc(void* param) {
 		break;
 	    case KEY_RIGHT:
 		// Select previous tweet, TODO make scrolling follow selection
-		if (colset[cur_col+1].acct != NULL) cur_col++;
+		if (colset[cur_col+1].enabled) cur_col++;
 		cur_row = scrollto(cur_col,cur_row); 	
 		break;
 	    case 'j':
@@ -189,10 +192,10 @@ void* uithreadfunc(void* param) {
 		if (cur_row >= 1) cur_row--; else cur_row = 0; cur_row = scrollto(cur_col,cur_row); break;
 	    case KEY_NPAGE:
 		// Scroll one page down
-		(colset[cur_col].scrollback)+=(LINES-2); break;
+		(colset[cur_col].scrollback)+=COLHEIGHT; break;
 	    case KEY_PPAGE:
 		// Scroll one page up
-		(colset[cur_col].scrollback)-=(LINES-2); if ((colset[cur_col].scrollback) < 0) (colset[cur_col].scrollback) = 0; break;
+		(colset[cur_col].scrollback)-=COLHEIGHT; if ((colset[cur_col].scrollback) < 0) (colset[cur_col].scrollback) = 0; break;
 	    case 'r':
 		// Load timeline. Tweets will be added.
 		reload_all_columns(); break;
@@ -223,17 +226,20 @@ int init_ui(){
 
     for (int i=0; i<MAXCOLUMNS; i++) {
 	columns[i] = NULL;
+	colset[i].enabled = 0;
 	colset[i].acct = NULL;
 	colset[i].tt = 0;
 	colset[i].customtype = NULL;
     }
 
     columns[0] = bt_create();
+    colset[0].enabled = 1;
     colset[0].acct = acctlist[0];
     colset[0].tt = home;
     colset[0].customtype = NULL;
 
     columns[1] = bt_create();
+    colset[1].enabled = 1;
     colset[1].acct = acctlist[0];
     colset[1].tt = mentions;
     colset[1].customtype = NULL;
@@ -257,6 +263,8 @@ int init_ui(){
 	init_pair(8,COLOR_BLACK,COLOR_WHITE + 8); //selected bg
     else
 	init_pair(8,COLOR_BLACK,COLOR_YELLOW);
+    
+    init_pair(9,COLOR_BLACK,COLOR_CYAN); //background
 
     keypad(stdscr, TRUE);
 
@@ -273,7 +281,11 @@ int init_ui(){
     wbkgd(inputbar,COLOR_PAIR(1));
 
     wrefresh(titlebar);
-    colarea = newwin((LINES-2),COLS,1,0);
+    
+    colhdrs = newwin(1,COLS,2,0);
+    wbkgd(colarea,COLOR_PAIR(9));
+
+    colarea = newwin(COLHEIGHT,COLS,2,0);
     wbkgd(colarea,ACS_CKBOARD | COLOR_PAIR(1));
     wrefresh(colarea);
     wrefresh(statusbar);
@@ -352,13 +364,13 @@ void drawcol_cb(uint64_t id, void* ctx) {
 
     } else { tp = pad->window; lines = pad->lines; }
 
-    if ((dc->curline + lines >= dc->scrollback) && (dc->curline - dc->scrollback <= LINES-3)) {
+    if ((dc->curline + lines >= dc->scrollback) && (dc->curline - dc->scrollback <= COLHEIGHT -1 )) {
 
 	int skipy = -(dc->curline - dc->scrollback);
 	int topy = ( (dc->curline - dc->scrollback > 0) ? (dc->curline - dc->scrollback) : 0);
-	int boty = ( (dc->curline - dc->scrollback + lines <= LINES-1) ? (dc->curline - dc->scrollback + lines) : LINES-2);
+	int boty = ( (dc->curline - dc->scrollback + lines <= COLHEIGHT+1) ? (dc->curline - dc->scrollback + lines) : COLHEIGHT);
 
-	pnoutrefresh(tp,skipy,0,topy+1,(dc->column * colwidth),boty,(dc->column +1) *colwidth - 1);
+	pnoutrefresh(tp,skipy,0,topy+2,(dc->column * colwidth),boty+1,(dc->column +1) *colwidth - 1);
 
     }
 
@@ -369,7 +381,11 @@ void drawcol_cb(uint64_t id, void* ctx) {
 
 }
 
-void makecolumn(int column, struct btree* timeline) {
+void draw_headers() {
+
+    for (int i=0; i < MAXCOLUMNS; i++) {
+
+    }	
 
 }
 

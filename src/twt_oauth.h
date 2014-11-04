@@ -12,6 +12,7 @@ struct t_account {
     char name[16]; //acct screen name
     uint64_t userid; //acct user id
     uint8_t auth; //is authorized(access token) or not(req token)?
+    char show_in_timeline; //show this account's tweets in global timelines.
     struct t_oauthkey* key; //account's oauth data
 };
 

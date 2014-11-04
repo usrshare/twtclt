@@ -440,4 +440,12 @@ int load_timeline(struct btree* timeline, struct t_account* acct, enum timelinet
     return load_timeline_ext(timeline,acct,tt,userid,customtype,0,0,0,0,0,0,0);
 }
 
+int load_global_timeline(struct btree* timeline, enum timelinetype tt, uint64_t userid, char* customtype) {
+    for (int i=0; i < acct_n; i++) {
+	if (acctlist[i]->show_in_timeline)
+	    load_timeline(timeline,acctlist[i],tt,userid,customtype);
+    }
+    return 0;    
+}
+
 

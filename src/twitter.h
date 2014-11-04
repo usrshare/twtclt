@@ -41,6 +41,7 @@ int del_acct(struct t_account* acct);
 
 int load_timeline(struct btree* timeline, struct t_account* acct, enum timelinetype tt, uint64_t userid, char* customtype);
 int load_timeline_ext(struct btree* timeline, struct t_account* acct, enum timelinetype tt, uint64_t userid, char* customtype, int since_id, int max_id, int count, int trim_user, int exclude_replies, int contributor_details, int include_entities);
+int load_global_timeline(struct btree* timeline, enum timelinetype tt, uint64_t userid, char* customtype);
 
 int load_config();
 
