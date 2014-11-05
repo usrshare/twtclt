@@ -59,7 +59,7 @@ int utf8_wrap_text(const char* in, char* out, size_t maxlen, uint8_t width) {
 
     char* strend = (char*) in + strlen(in);
 
-    int column=0, colbyte=0;
+    int column=0, colbyte=0; int linebroken=0;
     char* lastcol = (char*) in;
     char* lastdelim = NULL;
     char* endline = (char*) in;
@@ -80,7 +80,7 @@ int utf8_wrap_text(const char* in, char* out, size_t maxlen, uint8_t width) {
 	    endline = lastdelim+r; //   word_t_est
 	} else if (utf8char_in_set(uc,linebreaks,2) != -1) {
 	    // is a line break.
-	    column = 0;
+	    column = 0; linebroken = 1;
 	}
 
 	wchar_t thiswc = (wchar_t)uc;
@@ -90,7 +90,7 @@ int utf8_wrap_text(const char* in, char* out, size_t maxlen, uint8_t width) {
 
 	if (column + ucwidth > width) { column = width;} else {
 	
-	if ((utf8char_in_set(uc,spaces,25) == -1) || (column != 0)) { column += ucwidth; colbyte+=r; } else lastcol = (char*)iter+r; //will not add char if line starts with a space.
+	if ((utf8char_in_set(uc,spaces,25) == -1) || (column != 0)) { column += ucwidth; colbyte+=r; } else if (!linebroken) lastcol = (char*)iter+r; //will not add char if line starts with a space.
 
 	iter+=r;
 	//colbyte+=r;
@@ -114,6 +114,7 @@ int utf8_wrap_text(const char* in, char* out, size_t maxlen, uint8_t width) {
 
 	    lastcol = (char* ) iter;
 	    column=0;
+	    linebroken=0;
 	    colbyte=0;
 	    
 	    if (r == 0) { strcat(res,"…"); /*3 bytes */ }
