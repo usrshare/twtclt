@@ -149,6 +149,11 @@ int reload_all_columns() {
     return 0;
 }
 
+int exitfunc() {
+    save_accounts();
+    exit(0);
+}
+
 void* uithreadfunc(void* param) {
     // -- test.
 
@@ -200,7 +205,7 @@ void* uithreadfunc(void* param) {
 		// Load timeline. Tweets will be added.
 		reload_all_columns(); break;
 	    case 'q':
-		destroy_ui(); exit(0);
+		destroy_ui(); exitfunc();
 		break;
 	}
 
