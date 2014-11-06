@@ -40,7 +40,7 @@ uint8_t cur_col;
 uint16_t cur_row;
 uint32_t scroll_lines;
 
-int init_ui();
+pthread_t* init_ui();
 int destroy_ui();
 
 void* windowthread(void* param);

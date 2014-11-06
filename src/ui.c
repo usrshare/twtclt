@@ -101,8 +101,6 @@ void scrollto_btcb(uint64_t id, void* ctx) {
 }
 
 int scrollto (int col, int row) {
-    int t_top = 0, t_bot = 0; //tweet's top and bottom line
-
     struct scrollto_ctx sts = {0,0,0};
 
     int curel = 0;
@@ -149,17 +147,12 @@ int reload_all_columns() {
     return 0;
 }
 
-int exitfunc() {
-    save_accounts();
-    exit(0);
-}
-
 void* uithreadfunc(void* param) {
     // -- test.
 
-    cur_col = 0; cur_row = 0;
+    cur_col = 0; cur_row = 0; int uiloop = 1;
 
-    while(1) {
+    while(uiloop) {
 
 	mvwprintw(statusbar,0,0,"Ready.\n"); wrefresh(statusbar);
 
@@ -205,19 +198,21 @@ void* uithreadfunc(void* param) {
 		// Load timeline. Tweets will be added.
 		reload_all_columns(); break;
 	    case 'q':
-		destroy_ui(); exitfunc();
-		break;
+		uiloop = 0;
+	break;
 	}
 
 	draw_all_columns();
 	//draw_column(0,scrollback,acctlist[0]->timelinebt);
     }
 
+    endwin();
+
     return NULL;
 
 }
 
-int init_ui(){
+pthread_t* init_ui(){
     cursesused = 1;
     initscr();
 
@@ -296,18 +291,12 @@ int init_ui(){
     wrefresh(statusbar);
     wrefresh(inputbar);
 
-    pthread_t keythread;
-    int r = pthread_create(&keythread,NULL,uithreadfunc,NULL);
+    pthread_t* keythread = malloc(sizeof(pthread_t));
+    int r = pthread_create(keythread,NULL,uithreadfunc,NULL);
 
     if (r != 0) lprintf("pthread_create returned %d\n",r);
 
-    return 0;
-}
-
-
-int destroy_ui(){
-    endwin();
-    return 0;
+    return keythread;
 }
 
 void drawtwt_cb(uint64_t id, void* ctx) {

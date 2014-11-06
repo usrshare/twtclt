@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <locale.h>
 #include <unistd.h>
+#include <pthread.h>
 #include "config.h"
 #include "globals.h"
 #include "log.h"
@@ -148,9 +149,9 @@ int main(int argc, char* argv[]){
 
     lprintf("%d accounts loaded.\n",acct_n);
 
-    init_ui();
+    pthread_t* uithread = init_ui();
 
-    pause();
+    r = pthread_join(*uithread,NULL);
 
     save_accounts();
 
