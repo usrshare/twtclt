@@ -46,6 +46,29 @@ ssize_t utf8_strnlen(const uint8_t* in, size_t maxlen) {
     return n;
 }
 
+int utf8_text_size(const char* in, int* width, int* height) {
+
+    int column = 0;
+
+    const uint8_t* iter = (const uint8_t *) in;
+
+    int r = 0, l = strlen(in); int32_t uc;
+    
+   do {
+	r = utf8proc_iterate(iter,l,&uc);
+
+	if (utf8char_in_set(uc,linebreaks,2) != -1) {
+	    // is a line break.
+	}
+
+	//TODO
+
+	iter+=r; l-=r;
+    } while (r > 0);
+
+
+    return -1; 
+}
 
 int utf8_wrap_text(const char* in, char* out, size_t maxlen, uint8_t width) {
     

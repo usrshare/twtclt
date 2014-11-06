@@ -147,6 +147,17 @@ int reload_all_columns() {
     return 0;
 }
 
+enum msgboxclass {
+    msg_info, //blue borders
+    msg_warning, //yellow borders
+    msg_error, //red borders
+    msg_critical, //red borders, darken background?
+};
+
+int msgbox(char* message, enum msgboxclass class, int buttons_n, char** buttons_text) {
+
+}
+
 void* uithreadfunc(void* param) {
     // -- test.
 

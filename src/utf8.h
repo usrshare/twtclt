@@ -5,6 +5,11 @@
 #ifndef _UTF8_H_
 #define _UTF8_H_
 
+struct textsize {
+    int width;
+    int height;
+};
+
 int utf8_test();
 
 int utf8char_in_set(int32_t uc, const int32_t* set, int32_t setlen);
