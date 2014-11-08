@@ -156,6 +156,73 @@ enum msgboxclass {
 
 int msgbox(char* message, enum msgboxclass class, int buttons_n, char** buttons_text) {
 
+    //TODO show and handle buttons.
+
+    int textwidth, textheight;
+
+    utf8_text_size(message,&textwidth,&textheight);
+
+    int maxwidth = textwidth+4;
+
+    int maxheight = textheight+4;
+
+    WINDOW* msgwindow = newwin(maxheight,maxwidth,(LINES-maxheight)/2, (COLS-maxwidth)/2);
+
+    switch (class) {
+	case msg_info:
+	    attron(COLOR_PAIR(10));
+	    box(msgwindow,0,0);
+	    attroff(COLOR_PAIR(10));
+	    break;
+	case msg_warning:
+	    attron(COLOR_PAIR(11));
+	    box(msgwindow,0,0);
+	    attroff(COLOR_PAIR(11));
+	    break;
+	case msg_error:
+	    attron(COLOR_PAIR(12));
+	    box(msgwindow,0,0);
+	    attroff(COLOR_PAIR(12));
+	    break;
+	case msg_critical:
+	    attron(COLOR_PAIR(13));
+	    box(msgwindow,0,0);
+	    attroff(COLOR_PAIR(13));
+	    break;
+    }
+
+    WINDOW* textwin = derwin(msgwindow,maxheight-4,maxwidth-4,2,2);
+
+    waddstr(textwin,message);
+
+    touchwin(msgwindow);
+    wrefresh(msgwindow);
+
+    int selectloop = 1;
+
+    while (selectloop) {
+
+    int k = wgetch(inputbar); 
+    
+    switch(k) {
+	case 'h':
+	case KEY_LEFT: {
+			   break;
+		       }
+
+	case 'l':
+	case KEY_STAB:
+	case KEY_RIGHT: {
+			    break;
+			}
+	case KEY_ENTER: {
+			    selectloop=0;
+			    break;
+			}
+    }
+    }
+
+    return 0;
 }
 
 void* uithreadfunc(void* param) {
@@ -205,12 +272,16 @@ void* uithreadfunc(void* param) {
 	    case KEY_PPAGE:
 		// Scroll one page up
 		(colset[cur_col].scrollback)-=COLHEIGHT; if ((colset[cur_col].scrollback) < 0) (colset[cur_col].scrollback) = 0; break;
+	    case 'm':
+		// Load timeline. Tweets will be added.
+		msgbox("Lol.",msg_info,0,NULL);
+		break;
 	    case 'r':
 		// Load timeline. Tweets will be added.
 		reload_all_columns(); break;
 	    case 'q':
 		uiloop = 0;
-	break;
+		break;
 	}
 
 	draw_all_columns();
@@ -274,8 +345,13 @@ pthread_t* init_ui(){
 	init_pair(8,COLOR_BLACK,COLOR_WHITE + 8); //selected bg
     else
 	init_pair(8,COLOR_BLACK,COLOR_YELLOW);
-    
+
     init_pair(9,COLOR_BLACK,COLOR_CYAN); //background
+    
+    init_pair(10,COLOR_BLUE,COLOR_BLACK); //bars
+    init_pair(11,COLOR_YELLOW,COLOR_BLACK); //bars
+    init_pair(12,COLOR_RED,COLOR_BLACK); //bars
+    init_pair(13,COLOR_WHITE,COLOR_RED); //bars
 
     keypad(stdscr, TRUE);
 
@@ -292,7 +368,7 @@ pthread_t* init_ui(){
     wbkgd(inputbar,COLOR_PAIR(1));
 
     wrefresh(titlebar);
-    
+
     colhdrs = newwin(1,COLS,2,0);
     wbkgd(colarea,COLOR_PAIR(9));
 

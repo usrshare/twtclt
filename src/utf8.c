@@ -18,16 +18,16 @@ int utf8char_in_set(int32_t uc, const int32_t* set, int32_t setlen) {
 }
 
 int utf8_test() {
-    
-	char text[] = "Привет! This is a test of UTF-8 text ０１２３４５６７８９ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ！゛＃＄％＆（）＊＋、ー。／：；〈＝＝〉？＠［\\］＾＿‘｛｜｝～\n";
 
-	char test[1000];
+    char text[] = "Привет! This is a test of UTF-8 text ０１２３４５６７８９ａｂｃｄｅｆｇｈｉｊｋｌｍｎｏｐｑｒｓｔｕｖｗｘｙｚＡＢＣＤＥＦＧＨＩＪＫＬＭＮＯＰＱＲＳＴＵＶＷＸＹＺ！゛＃＄％＆（）＊＋、ー。／：；〈＝＝〉？＠［\\］＾＿‘｛｜｝～\n";
 
-	utf8_wrap_text(text, test, 1000, 30);	
+    char test[1000];
 
-	printf("%s\n",test);
+    utf8_wrap_text(text, test, 1000, 30);	
 
-	return 0;
+    printf("%s\n",test);
+
+    return 0;
 }
 
 ssize_t utf8_strnlen(const uint8_t* in, size_t maxlen) {
@@ -50,28 +50,38 @@ int utf8_text_size(const char* in, int* width, int* height) {
 
     int column = 0;
 
+    int maxwidth=0, lines=1;
+
     const uint8_t* iter = (const uint8_t *) in;
 
     int r = 0, l = strlen(in); int32_t uc;
-    
-   do {
+
+    do {
 	r = utf8proc_iterate(iter,l,&uc);
 
 	if (utf8char_in_set(uc,linebreaks,2) != -1) {
+	    lines++;
+	    if (column > maxwidth) maxwidth = column;
+	    column = 0;
 	    // is a line break.
-	}
+	} else {
 
-	//TODO
+	    wchar_t thiswc = (wchar_t)uc;
+	    int ucwidth = wcwidth(thiswc);
+	    column += ucwidth;
+	}
 
 	iter+=r; l-=r;
     } while (r > 0);
 
+    *width = maxwidth;
+    *height = lines;
 
     return -1; 
 }
 
 int utf8_wrap_text(const char* in, char* out, size_t maxlen, uint8_t width) {
-    
+
     //TODO: Writes a copy of UTF-8 text in _in_, wrapped to _width_ chars per line, into _out_.
 
     if (out == NULL) return -1;
@@ -112,12 +122,12 @@ int utf8_wrap_text(const char* in, char* out, size_t maxlen, uint8_t width) {
 	//printf("Character 'U+%X' has width %d\n",thiswc,ucwidth);
 
 	if (column + ucwidth > width) { column = width;} else {
-	
-	if ((utf8char_in_set(uc,spaces,25) == -1) || (column != 0)) { column += ucwidth; colbyte+=r; } else if (!linebroken) lastcol = (char*)iter+r; //will not add char if line starts with a space.
 
-	iter+=r;
-	//colbyte+=r;
-	l = strend - (char *) iter; }
+	    if ((utf8char_in_set(uc,spaces,25) == -1) || (column != 0)) { column += ucwidth; colbyte+=r; } else if (!linebroken) lastcol = (char*)iter+r; //will not add char if line starts with a space.
+
+	    iter+=r;
+	    //colbyte+=r;
+	    l = strend - (char *) iter; }
 
 	if (column >= width) {
 
@@ -126,7 +136,7 @@ int utf8_wrap_text(const char* in, char* out, size_t maxlen, uint8_t width) {
 	    if (bytesleft < (tocopy+1)) { tocopy = bytesleft-1; r = 0; }
 
 	    tocopy = utf8_strnlen((const uint8_t*)lastcol,tocopy);
-	    
+
 	    strncat(res,lastcol,tocopy);
 	    if (r) strncat(res,"\n",1);
 
@@ -139,11 +149,11 @@ int utf8_wrap_text(const char* in, char* out, size_t maxlen, uint8_t width) {
 	    column=0;
 	    linebroken=0;
 	    colbyte=0;
-	    
+
 	    if (r == 0) { strcat(res,"…"); /*3 bytes */ }
 	}
     } while (r > 0);
-    
+
     if (bytesleft >= colbyte+1) strncat(res,lastcol,colbyte);
 
     assert(strlen(res) < maxlen);

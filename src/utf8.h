@@ -16,6 +16,8 @@ int utf8char_in_set(int32_t uc, const int32_t* set, int32_t setlen);
 
 ssize_t utf8_strnlen(const uint8_t* in, size_t maxlen);
 
+int utf8_text_size(const char* in, int* width, int* height);
+
 int utf8_wrap_text(const char* in, char* out, size_t maxlen, uint8_t width);
 
 int utf8_count_chars(const char* text);
