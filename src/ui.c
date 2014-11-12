@@ -188,7 +188,7 @@ int msgbox(char* message, enum msgboxclass class, int buttons_n, char** btntext)
 
     int maxheight = textheight+4;
 
-    if (btnwidth >= textwidth) maxwidth = btnwidth+8;
+    if (btnwidth >= textwidth) maxwidth = btnwidth+4;
 
     WINDOW* msgwindow = newwin(maxheight,maxwidth,(LINES-maxheight)/2, (COLS-maxwidth)/2);
 
@@ -266,12 +266,14 @@ int msgbox(char* message, enum msgboxclass class, int buttons_n, char** btntext)
 		selbtn = (selbtn -1) % buttons_n; if (selbtn < 0) selbtn = (buttons_n -1);
 		break;
 	    case 'l':
-	    case KEY_STAB:
+	    case '\t':
 	    case KEY_RIGHT:
 		selbtn = (selbtn +1) % buttons_n;
 		break;
 	    case 32:
 	    case KEY_ENTER:
+	    case '\r':
+	    case '\n':
 		selectloop=0;
 		break;
 	}
@@ -349,6 +351,9 @@ void* uithreadfunc(void* param) {
 	    case 'r':
 		// Load timeline. Tweets will be added.
 		reload_all_columns(); break;
+	    case 't':
+		msgbox("Tweeting not yet supported.",msg_error,0,NULL);
+		break;
 	    case 'q':
 		uiloop = 0;
 		break;
