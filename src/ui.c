@@ -15,6 +15,10 @@
 
 #define COLHEIGHT (LINES-3)
 
+char* okcanc[] = {"OK","Cancel"};
+char* yesno[] = {"Yes","No"};
+
+
 uint8_t colwidth = 40; //default width, may be larger
 uint8_t visiblecolumns = 1; //how many columns are visible side by side
 
@@ -154,17 +158,37 @@ enum msgboxclass {
     msg_critical, //red borders, darken background?
 };
 
-int msgbox(char* message, enum msgboxclass class, int buttons_n, char** buttons_text) {
+int msgbox(char* message, enum msgboxclass class, int buttons_n, char** btntext) {
 
     //TODO show and handle buttons.
 
-    int textwidth, textheight;
+    int textwidth, textheight, btnwidth = (buttons_n - 1);
 
     utf8_text_size(message,&textwidth,&textheight);
+
+    char* cutmsg = NULL;
+
+    if ((textwidth) > (COLS - 8)) {
+
+	cutmsg = malloc(strlen(message) + 128);
+
+	int r = utf8_wrap_text(message,cutmsg,strlen(message) + 128,(COLS-8));
+
+	utf8_text_size(cutmsg,&textwidth,&textheight);
+
+    }
+
+    char* dispmsg = (cutmsg ? cutmsg : message);
+
+
+    if (buttons_n > 0)
+	for (int i=0; i<buttons_n; i++) btnwidth += 1 + strlen(btntext[i]) + 1; //[button]
 
     int maxwidth = textwidth+4;
 
     int maxheight = textheight+4;
+
+    if (btnwidth >= textwidth) maxwidth = btnwidth+8;
 
     WINDOW* msgwindow = newwin(maxheight,maxwidth,(LINES-maxheight)/2, (COLS-maxwidth)/2);
 
@@ -196,6 +220,32 @@ int msgbox(char* message, enum msgboxclass class, int buttons_n, char** buttons_
     waddstr(textwin,message);
 
     touchwin(msgwindow);
+	
+    WINDOW* buttons[buttons_n]; //C99 VLAs FTW!
+
+    if (buttons_n != 0) {
+
+    int btnwidth = (buttons_n - 1); //1 space between buttons
+
+    for (int i=0; i<buttons_n; i++) {
+	btnwidth += 1 + strlen(btntext[i]) + 1; //[button]
+    }
+
+    int btnleft = (maxwidth - btnwidth) / 2;
+
+    int curbutleft = btnleft;
+
+    for (int i=0; i<buttons_n; i++) {
+
+	buttons[i] = derwin(msgwindow,1,strlen(btntext[i])+2, maxheight-2, curbutleft);
+	wprintw(buttons[i],"[%s]",btntext[i]);
+	curbutleft+=(strlen(btntext[i])+3);
+	touchwin(msgwindow);
+
+    }
+
+    }
+    
     wrefresh(msgwindow);
 
     int selectloop = 1;
@@ -206,21 +256,31 @@ int msgbox(char* message, enum msgboxclass class, int buttons_n, char** buttons_
     
     switch(k) {
 	case 'h':
-	case KEY_LEFT: {
-			   break;
-		       }
-
+	case KEY_LEFT:
+	    break;
 	case 'l':
 	case KEY_STAB:
-	case KEY_RIGHT: {
-			    break;
-			}
-	case KEY_ENTER: {
-			    selectloop=0;
-			    break;
-			}
+	case KEY_RIGHT:
+	    break;
+	case 32:
+	case KEY_ENTER:
+	    selectloop=0;
+	    break;
     }
     }
+
+    for (int i=0; i<buttons_n; i++) {
+
+	delwin(buttons[i]);
+
+    }
+
+    delwin(textwin);
+    delwin(msgwindow);
+
+    refresh();
+
+    if (cutmsg) free (cutmsg);
 
     return 0;
 }
@@ -274,7 +334,7 @@ void* uithreadfunc(void* param) {
 		(colset[cur_col].scrollback)-=COLHEIGHT; if ((colset[cur_col].scrollback) < 0) (colset[cur_col].scrollback) = 0; break;
 	    case 'm':
 		// Load timeline. Tweets will be added.
-		msgbox("Lol.",msg_info,0,NULL);
+		msgbox("Lol.",msg_info,2,okcanc);
 		break;
 	    case 'r':
 		// Load timeline. Tweets will be added.

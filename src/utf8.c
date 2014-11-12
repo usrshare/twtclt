@@ -59,7 +59,7 @@ int utf8_text_size(const char* in, int* width, int* height) {
     do {
 	r = utf8proc_iterate(iter,l,&uc);
 
-	if (utf8char_in_set(uc,linebreaks,2) != -1) {
+	if ((r <= 0) || (utf8char_in_set(uc,linebreaks,2) != -1)) {
 	    lines++;
 	    if (column > maxwidth) maxwidth = column;
 	    column = 0;
