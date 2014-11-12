@@ -194,24 +194,24 @@ int msgbox(char* message, enum msgboxclass class, int buttons_n, char** btntext)
 
     switch (class) {
 	case msg_info:
-	    attron(COLOR_PAIR(10));
+	    wattron(msgwindow,COLOR_PAIR(10));
 	    box(msgwindow,0,0);
-	    attroff(COLOR_PAIR(10));
+	    wattroff(msgwindow,COLOR_PAIR(10));
 	    break;
 	case msg_warning:
-	    attron(COLOR_PAIR(11));
+	    wattron(msgwindow,COLOR_PAIR(11));
 	    box(msgwindow,0,0);
-	    attroff(COLOR_PAIR(11));
+	    wattroff(msgwindow,COLOR_PAIR(11));
 	    break;
 	case msg_error:
-	    attron(COLOR_PAIR(12));
+	    wattron(msgwindow,COLOR_PAIR(12));
 	    box(msgwindow,0,0);
-	    attroff(COLOR_PAIR(12));
+	    wattroff(msgwindow,COLOR_PAIR(12));
 	    break;
 	case msg_critical:
-	    attron(COLOR_PAIR(13));
+	    wattron(msgwindow,COLOR_PAIR(13));
 	    box(msgwindow,0,0);
-	    attroff(COLOR_PAIR(13));
+	    wattroff(msgwindow,COLOR_PAIR(13));
 	    break;
     }
 
@@ -220,33 +220,27 @@ int msgbox(char* message, enum msgboxclass class, int buttons_n, char** btntext)
     waddstr(textwin,message);
 
     touchwin(msgwindow);
-	
+
     WINDOW* buttons[buttons_n]; //C99 VLAs FTW!
 
     if (buttons_n != 0) {
 
-    int btnwidth = (buttons_n - 1); //1 space between buttons
+	int btnwidth = (buttons_n - 1); //1 space between buttons
 
-    for (int i=0; i<buttons_n; i++) {
-	btnwidth += 1 + strlen(btntext[i]) + 1; //[button]
+	for (int i=0; i<buttons_n; i++) {
+	    btnwidth += 1 + strlen(btntext[i]) + 1; //[button]
+	}
+
+	int btnleft = (maxwidth - btnwidth) / 2;
+
+	int curbutleft = btnleft;
+
+	for (int i=0; i<buttons_n; i++) {
+
+	    buttons[i] = derwin(msgwindow,1,strlen(btntext[i])+2, maxheight-2, curbutleft);
+	    curbutleft+=(strlen(btntext[i])+3);
+	}
     }
-
-    int btnleft = (maxwidth - btnwidth) / 2;
-
-    int curbutleft = btnleft;
-
-    for (int i=0; i<buttons_n; i++) {
-
-	buttons[i] = derwin(msgwindow,1,strlen(btntext[i])+2, maxheight-2, curbutleft);
-	wprintw(buttons[i],"[%s]",btntext[i]);
-	curbutleft+=(strlen(btntext[i])+3);
-	touchwin(msgwindow);
-
-    }
-
-    }
-    
-    wrefresh(msgwindow);
 
     int selectloop = 1;
 
@@ -254,23 +248,34 @@ int msgbox(char* message, enum msgboxclass class, int buttons_n, char** btntext)
 
     while (selectloop) {
 
-    int k = wgetch(inputbar); 
-    
-    switch(k) {
-	case 'h':
-	case KEY_LEFT:
-			   selbtn = (selbtn -1) % buttons_n;
-	    break;
-	case 'l':
-	case KEY_STAB:
-	case KEY_RIGHT:
-			   selbtn = (selbtn +1) % buttons_n;
-	    break;
-	case 32:
-	case KEY_ENTER:
-	    selectloop=0;
-	    break;
-    }
+	for (int i=0; i<buttons_n; i++) {
+	    if (selbtn == i) wattron(buttons[i],A_REVERSE);
+	    mvwprintw(buttons[i],0,0,"[%s]",btntext[i]);
+	    if (selbtn == i) wattroff(buttons[i],A_REVERSE);
+	    touchwin(msgwindow);
+	}
+
+	wrefresh(msgwindow);
+
+	wmove(inputbar,0,0);
+	int k = wgetch(inputbar); 
+
+	switch(k) {
+	    case 'h':
+	    case KEY_LEFT:
+		selbtn = (selbtn -1) % buttons_n;
+		break;
+	    case 'l':
+	    case KEY_STAB:
+	    case KEY_RIGHT:
+		selbtn = (selbtn +1) % buttons_n;
+		break;
+	    case 32:
+	    case KEY_ENTER:
+		selectloop=0;
+		break;
+	}
+
     }
 
     for (int i=0; i<buttons_n; i++) {
@@ -282,7 +287,8 @@ int msgbox(char* message, enum msgboxclass class, int buttons_n, char** btntext)
     delwin(textwin);
     delwin(msgwindow);
 
-    refresh();
+    touchwin(colarea);
+    wrefresh(colarea);
 
     if (cutmsg) free (cutmsg);
     return selbtn;
@@ -335,10 +341,11 @@ void* uithreadfunc(void* param) {
 	    case KEY_PPAGE:
 		// Scroll one page up
 		(colset[cur_col].scrollback)-=COLHEIGHT; if ((colset[cur_col].scrollback) < 0) (colset[cur_col].scrollback) = 0; break;
-	    case 'm':
+	    case 'm': {
 		// Load timeline. Tweets will be added.
-		msgbox("Lol.",msg_info,2,okcanc);
-		break;
+		int r = msgbox("Lol.",msg_info,2,okcanc);
+		if (r) msgbox("Option 2?",msg_error,0,NULL);
+		break; }
 	    case 'r':
 		// Load timeline. Tweets will be added.
 		reload_all_columns(); break;
@@ -410,7 +417,7 @@ pthread_t* init_ui(){
 	init_pair(8,COLOR_BLACK,COLOR_YELLOW);
 
     init_pair(9,COLOR_BLACK,COLOR_CYAN); //background
-    
+
     init_pair(10,COLOR_BLUE,COLOR_BLACK); //bars
     init_pair(11,COLOR_YELLOW,COLOR_BLACK); //bars
     init_pair(12,COLOR_RED,COLOR_BLACK); //bars
@@ -436,6 +443,7 @@ pthread_t* init_ui(){
     wbkgd(colarea,COLOR_PAIR(9));
 
     colarea = newwin(COLHEIGHT,COLS,2,0);
+    wbkgdset(colarea,ACS_CKBOARD | COLOR_PAIR(1));
     wbkgd(colarea,ACS_CKBOARD | COLOR_PAIR(1));
     wrefresh(colarea);
     wrefresh(statusbar);
