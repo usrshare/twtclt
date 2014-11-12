@@ -263,7 +263,7 @@ int msgbox(char* message, enum msgboxclass class, int buttons_n, char** btntext)
 	switch(k) {
 	    case 'h':
 	    case KEY_LEFT:
-		selbtn = (selbtn -1) % buttons_n;
+		selbtn = (selbtn -1) % buttons_n; if (selbtn < 0) selbtn = (buttons_n -1);
 		break;
 	    case 'l':
 	    case KEY_STAB:
