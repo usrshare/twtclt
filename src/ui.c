@@ -200,6 +200,8 @@ int msgbox(char* message, enum msgboxclass class, int buttons_n, char** buttons_
 
     int selectloop = 1;
 
+    int selbtn = 0;
+
     while (selectloop) {
 
     int k = wgetch(inputbar); 
@@ -207,12 +209,14 @@ int msgbox(char* message, enum msgboxclass class, int buttons_n, char** buttons_
     switch(k) {
 	case 'h':
 	case KEY_LEFT: {
+			   selbtn = (selbtn -1) % buttons_n;
 			   break;
 		       }
 
 	case 'l':
 	case KEY_STAB:
 	case KEY_RIGHT: {
+			   selbtn = (selbtn +1) % buttons_n;
 			    break;
 			}
 	case KEY_ENTER: {
@@ -222,7 +226,7 @@ int msgbox(char* message, enum msgboxclass class, int buttons_n, char** buttons_
     }
     }
 
-    return 0;
+    return selbtn;
 }
 
 void* uithreadfunc(void* param) {
