@@ -27,6 +27,8 @@ struct drawcol_ctx{
     int column;
     int row; //number of tweet currently drawn
     int scrollback;
+    int topline; //if not 0, only draw lines starting from topline
+    int lines; //if not 0, only draw N lines
 };
 
 struct t_timelineset {
@@ -136,6 +138,19 @@ int draw_all_columns() {
     return 0;
 }
 
+int redraw_lines(int topline, int lines) {
+
+    for (int i=0; i < MAXCOLUMNS; i++) {
+
+	if (colset[i].enabled) {
+
+	    draw_column_limit(i,colset[i].scrollback,columns[i],topline,lines);
+	}
+    }
+
+    return 0;
+}
+
 
 int reload_all_columns() {
 
@@ -157,6 +172,17 @@ enum msgboxclass {
     msg_error, //red borders
     msg_critical, //red borders, darken background?
 };
+
+int inputbox(const char* message, char* textfield, size_t textsize) {
+
+    int msgwidth, msgheight, textw;
+
+    //char input[textsize+1];
+
+    //FIELD* field[4];
+    
+    utf8_text_size(message,&msgwidth,&msgheight);
+}
 
 int msgbox(char* message, enum msgboxclass class, int buttons_n, char** btntext) {
 
@@ -190,7 +216,8 @@ int msgbox(char* message, enum msgboxclass class, int buttons_n, char** btntext)
 
     if (btnwidth >= textwidth) maxwidth = btnwidth+4;
 
-    WINDOW* msgwindow = newwin(maxheight,maxwidth,(LINES-maxheight)/2, (COLS-maxwidth)/2);
+    int topline = (LINES-maxheight)/2;
+    WINDOW* msgwindow = newwin(maxheight,maxwidth,topline, (COLS-maxwidth)/2);
 
     switch (class) {
 	case msg_info:
@@ -231,9 +258,10 @@ int msgbox(char* message, enum msgboxclass class, int buttons_n, char** btntext)
 	    btnwidth += 1 + strlen(btntext[i]) + 1; //[button]
 	}
 
-	int btnleft = (maxwidth - btnwidth) / 2;
+	// int btnleft = (maxwidth - btnwidth) / 2; //align center
+	int btnleft = (maxwidth - btnwidth); //align right
 
-	int curbutleft = btnleft;
+	int curbutleft = btnleft - 2;
 
 	for (int i=0; i<buttons_n; i++) {
 
@@ -289,10 +317,13 @@ int msgbox(char* message, enum msgboxclass class, int buttons_n, char** btntext)
     delwin(textwin);
     delwin(msgwindow);
 
-    touchwin(colarea);
+    wtouchln(colarea,(LINES-maxheight)/2-2,maxheight,1);
     wrefresh(colarea);
 
     if (cutmsg) free (cutmsg);
+
+    redraw_lines(topline,maxheight);
+
     return selbtn;
 }
 
@@ -313,53 +344,72 @@ void* uithreadfunc(void* param) {
 
 	    case 'J':
 		// scroll down a line
-		colset[cur_col].scrollback++; break;
+		colset[cur_col].scrollback++;
+		draw_all_columns();
+		break;
 	    case 'K':
 		// scroll up a line
-		if (colset[cur_col].scrollback > 0) colset[cur_col].scrollback--; break;
+		if (colset[cur_col].scrollback > 0) colset[cur_col].scrollback--;
+		draw_all_columns();
+		break;
 	    case 'l':
 		// Show all links in the selected tweet
 	    case KEY_LEFT:
 		// Select next tweet, TODO make scrolling follow selection
 		if (cur_col > 0) cur_col--;
 		cur_row = scrollto(cur_col,cur_row); 	
+		draw_all_columns();
 		break;
 	    case KEY_RIGHT:
 		// Select previous tweet, TODO make scrolling follow selection
 		if (colset[cur_col+1].enabled) cur_col++;
 		cur_row = scrollto(cur_col,cur_row); 	
+		draw_all_columns();
 		break;
 	    case 'j':
 	    case KEY_DOWN:
 		// Select next tweet, TODO make scrolling follow selection
-		cur_row++; cur_row = scrollto(cur_col,cur_row); break;
+		cur_row++; cur_row = scrollto(cur_col,cur_row);
+		draw_all_columns();
+		break;
 	    case 'k':
 	    case KEY_UP:
 		// Select previous tweet, TODO make scrolling follow selection
-		if (cur_row >= 1) cur_row--; else cur_row = 0; cur_row = scrollto(cur_col,cur_row); break;
+		if (cur_row >= 1) cur_row--; else cur_row = 0; cur_row = scrollto(cur_col,cur_row);
+		draw_all_columns();
+		break;
 	    case KEY_NPAGE:
 		// Scroll one page down
-		(colset[cur_col].scrollback)+=COLHEIGHT; break;
+		(colset[cur_col].scrollback)+=COLHEIGHT;
+		draw_all_columns();
+		break;
 	    case KEY_PPAGE:
 		// Scroll one page up
-		(colset[cur_col].scrollback)-=COLHEIGHT; if ((colset[cur_col].scrollback) < 0) (colset[cur_col].scrollback) = 0; break;
+		(colset[cur_col].scrollback)-=COLHEIGHT; if ((colset[cur_col].scrollback) < 0) (colset[cur_col].scrollback) = 0;
+		draw_all_columns();
+		break;
 	    case 'm': {
 		// Load timeline. Tweets will be added.
 		int r = msgbox("Lol.",msg_info,2,okcanc);
 		if (r) msgbox("Option 2?",msg_error,0,NULL);
+		draw_all_columns();
 		break; }
 	    case 'r':
 		// Load timeline. Tweets will be added.
-		reload_all_columns(); break;
+		reload_all_columns();
+		draw_all_columns();
+		break;
 	    case 't':
 		msgbox("Tweeting not yet supported.",msg_error,0,NULL);
+		draw_all_columns();
 		break;
-	    case 'q':
-		uiloop = 0;
-		break;
+	    case 'q': {
+		int r = msgbox("Are you sure you want to exit twtclt?",msg_info,2,yesno);
+		if (r == 0) uiloop = 0;
+		draw_all_columns();
+		break; }
 	}
 
-	draw_all_columns();
 	//draw_column(0,scrollback,acctlist[0]->timelinebt);
     }
 
@@ -527,7 +577,8 @@ void drawcol_cb(uint64_t id, void* ctx) {
 	int topy = ( (dc->curline - dc->scrollback > 0) ? (dc->curline - dc->scrollback) : 0);
 	int boty = ( (dc->curline - dc->scrollback + lines <= COLHEIGHT+1) ? (dc->curline - dc->scrollback + lines) : COLHEIGHT);
 
-	pnoutrefresh(tp,skipy,0,topy+2,(dc->column * colwidth),boty+1,(dc->column +1) *colwidth - 1);
+	if ( (dc->lines == 0) || (boty >= dc->topline) || (topy <= dc->topline + dc->lines))
+	    pnoutrefresh(tp,skipy,0,topy+2,(dc->column * colwidth),boty+1,(dc->column +1) *colwidth - 1);
 
     }
 
@@ -545,6 +596,20 @@ void draw_headers() {
     }	
 
 }
+
+void draw_column_limit(int column, int scrollback, struct btree* timeline, int topline, int lines) {
+    //btree should contain tweet IDs.
+
+    bt_read(timeline, drawtwt_cb, NULL, desc);
+
+    struct drawcol_ctx dc = { .curline=0, .column=column, .row=0, .scrollback=scrollback, .topline=topline, .lines=lines};
+    bt_read(timeline, drawcol_cb, &dc, desc);
+
+    //int curcol = (dc.curline - dc.scrollback);
+
+    doupdate();
+} 
+
 
 void draw_column(int column, int scrollback, struct btree* timeline) {
     //btree should contain tweet IDs.

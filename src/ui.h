@@ -49,7 +49,11 @@ int draw_cards();
 void draw_tweet(struct t_tweet* tweet);
 
 void drawcol_cb(uint64_t id, void* ctx);
+void draw_column_limit(int column, int scrollback, struct btree* timeline, int topline, int lines);
 void draw_column(int column, int scrollback, struct btree* timeline);
 WINDOW* tweetpad(struct t_tweet* tweet, int* linecount, int selected);
+
+int redraw_lines(int topline, int lines);
+int draw_all_columns();
 
 #endif

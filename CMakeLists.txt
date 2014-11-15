@@ -32,7 +32,7 @@ SET_TARGET_PROPERTIES(libmojibake PROPERTIES
 include_directories (${CMAKE_SOURCE_DIR}/libmojibake)
 
 find_package(PkgConfig)
-pkg_check_modules(NCURSESW "ncursesw" REQUIRED)
+pkg_check_modules(NCURSESW "panel ncursesw" REQUIRED)
 
 include_directories(${NCURSESW_INCLUDE_DIRS})
 
