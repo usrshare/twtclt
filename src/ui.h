@@ -37,7 +37,7 @@ uint8_t colcount;
 WINDOW* colpads;
 
 uint8_t cur_col;
-uint16_t cur_row;
+uint16_t curtwtid;
 uint32_t scroll_lines;
 
 pthread_t* init_ui();
@@ -50,6 +50,7 @@ void draw_tweet(struct t_tweet* tweet);
 
 void drawcol_cb(uint64_t id, void* ctx);
 void draw_column_limit(int column, int scrollback, struct btree* timeline, int topline, int lines);
+void draw_column2(int column, int scrollback, struct btree* timeline,int do_update);
 void draw_column(int column, int scrollback, struct btree* timeline);
 WINDOW* tweetpad(struct t_tweet* tweet, int* linecount, int selected);
 

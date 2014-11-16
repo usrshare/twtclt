@@ -19,7 +19,6 @@
 #define infree(x) if(x) free(x);
 
 const char twt_rest[] = ""; //REST url
-const char twt_strm[] = ""; //streaming url
 
 const char twt_hometl_url[] = "https://api.twitter.com/1.1/statuses/home_timeline.json";
 const char twt_usertl_url[] = "https://api.twitter.com/1.1/statuses/user_timeline.json";
@@ -27,7 +26,13 @@ const char twt_menttl_url[] = "https://api.twitter.com/1.1/statuses/mentions_tim
 const char twt_search_url[] = "https://api.twitter.com/1.1/search/tweets.json";
 const char twt_dirmsg_url[] = "https://api.twitter.com/1.1/direct_messages.json";
 
+const char twt_usrstr_url[] = "https://userstream.twitter.com/1.1/user.json"; //user streams
+
 // tweet and user hashtable functions BEGIN
+int initcurl() {
+    curl_global_init(CURL_GLOBAL_ALL);
+    return 0;
+}
 
 int inithashtables(){
     tweetht = ht_create(1024);
@@ -35,7 +40,6 @@ int inithashtables(){
 
     return 0;
 }
-
 
 int json_object_get_nullbool(json_object* obj) {
     //returns -1 for null, 0 for false and 1 for true.
@@ -196,6 +200,7 @@ struct t_entity** load_tweet_entities(json_object* entities_obj, int* out_entity
 
 // these are helper functions for parse_json_user and parse_json tweet created so that indentation won't break.
 int fill_json_user_fields(struct t_user* nu, enum json_type ft, const char* fn, json_object* fv) {
+    if (fv == NULL) return 1;
     if (s_eq(fn,"id")) { nu->id = json_object_get_int64(fv); return 0; }
     if (s_eq(fn,"id_str")) { return 0; }
     if (s_eq(fn,"screen_name") && ft) { strncpy(nu->screen_name,json_object_get_string(fv),16); return 0; }
@@ -248,6 +253,7 @@ int fill_json_user_fields(struct t_user* nu, enum json_type ft, const char* fn, 
 
 }
 int fill_json_tweet_fields(struct t_tweet* nt, enum json_type ft, const char* fn, json_object* fv) {
+    if (fv == NULL) return 1;
     if (s_eq(fn,"id")) { nt->id = json_object_get_int64(fv); return 0;}
     if (s_eq(fn,"id_str")) { return 0;}
     if (s_eq(fn,"in_reply_to_status_id")) { nt->in_reply_to_status_id = json_object_get_int64(fv); return 0;}
@@ -435,11 +441,9 @@ int load_timeline_ext(struct btree* timeline, struct t_account* acct, enum timel
     free(baseurl);
     return 0;
 }
-
 int load_timeline(struct btree* timeline, struct t_account* acct, enum timelinetype tt, uint64_t userid, char* customtype) {
     return load_timeline_ext(timeline,acct,tt,userid,customtype,0,0,0,0,0,0,0);
 }
-
 int load_global_timeline(struct btree* timeline, enum timelinetype tt, uint64_t userid, char* customtype) {
     for (int i=0; i < acct_n; i++) {
 	if (acctlist[i]->show_in_timeline)
@@ -448,4 +452,141 @@ int load_global_timeline(struct btree* timeline, enum timelinetype tt, uint64_t 
     return 0;    
 }
 
+struct streamcb_ctx {
+    struct btree* timeline;
+    struct t_account* acct;
+    enum timelinetype tt;
+    char* buffer;
+    size_t buffersz;
+    stream_cb cb;
+    void* cbctx;
+};
 
+int parsestreamingmsg(char *msg, size_t msgsize, struct streamcb_ctx* ctx) {
+
+    struct json_tokener* jt = json_tokener_new();
+
+    enum json_tokener_error jerr;
+
+    struct json_object* streamobj = json_tokener_parse_ex(jt,msg,msgsize);
+
+    jerr = json_tokener_get_error(jt);
+
+    if (jerr != json_tokener_success) {
+	lprintf("JSON Tokener Error: %s\n",json_tokener_error_desc(jerr));
+    }
+
+    lprintf("full reply:%s, size: %zd\n",msg,msgsize);
+
+    if (json_object_get_type(streamobj) != json_type_object) {
+	lprintf("Something is wrong. Stream's JSON isn't an object, but a %s\n",json_type_to_name(json_object_get_type(streamobj)));
+	return 1; }
+
+    struct json_object_iterator it_c;
+
+    it_c = json_object_iter_begin(streamobj);
+
+    struct t_entity entity;
+
+    char* fn;// enum json_type ft;
+
+    memset(&entity,'\0',sizeof entity);
+
+    fn = json_object_iter_peek_name(&it_c);
+    //ft = json_object_get_type(fv); //unused
+
+    int parse_as_tweet = 1;
+
+    if (s_eq(fn,"friends")) { lprintf("received a follower list\n"); parse_as_tweet = 0; }
+    if (s_eq(fn,"event")) { lprintf("received an event\n"); parse_as_tweet = 0; }
+    if (s_eq(fn,"warning")) { lprintf("received a warning\n"); parse_as_tweet = 0; }
+    if (s_eq(fn,"delete")) { lprintf("received a tweet delete message\n"); parse_as_tweet = 0; }
+    if (s_eq(fn,"scrub_geo")) { lprintf("received a location delete message\n"); parse_as_tweet = 0; }
+    if (s_eq(fn,"limit")) { lprintf("received a limit message\n"); parse_as_tweet = 0; }
+    if (s_eq(fn,"status_withheld")) { lprintf("received a withheld status\n"); parse_as_tweet = 0; }
+    if (s_eq(fn,"user_withheld")) { lprintf("received a withheld user\n"); parse_as_tweet = 0; }
+    if (s_eq(fn,"disconnect")) { lprintf("received a disconnect notice\n"); parse_as_tweet = 0; }
+
+    if (parse_as_tweet) {
+	uint64_t tweet_id = parse_json_tweet(ctx->acct,streamobj,0);
+	bt_insert(ctx->timeline,tweet_id);
+	if (ctx->cb != NULL) ctx->cb(tweet_id,ctx->cbctx);
+    }
+
+    free(fn);
+    return 0;
+}
+
+size_t streamcb(char *ptr, size_t size, size_t nmemb, void *userdata) {
+
+    struct streamcb_ctx* ctx = (struct streamcb_ctx *)userdata;
+
+    char* msgstart = ptr;
+    char* delim;
+    char* endstr = ptr + (size * nmemb);
+
+    while ( (msgstart < endstr) && ((delim = strstr(msgstart,"\r\n")) != NULL) ) {
+
+	size_t strsize = (delim - msgstart);
+	if (strsize != 0) {
+	    char* msg = malloc(strsize+ ( (ctx->buffer != NULL) ? ctx->buffersz : 0 ) + 1);
+	    size_t appendto = 0;
+	    if (ctx->buffer) { memcpy(msg,ctx->buffer,ctx->buffersz); appendto = ctx->buffersz; }
+	    free(ctx->buffer); ctx->buffer = NULL ; ctx->buffersz = 0;
+	    memcpy(msg,msgstart + appendto,strsize); msg[appendto+strsize] = '\0';
+	    parsestreamingmsg(msg,appendto+strsize,ctx); }
+	msgstart = delim+2;
+    }
+
+    size_t remsize = (size * nmemb) - (msgstart - ptr);
+
+    if (remsize != 0) {
+
+	if (ctx->buffer != NULL) ctx->buffer = realloc(ctx->buffer, ctx->buffersz + remsize + 1); else
+	    ctx->buffer = malloc(ctx->buffersz + remsize + 1);
+	memcpy(ctx->buffer + ctx->buffersz,msgstart,remsize);
+	ctx->buffer[ctx->buffersz + remsize] = '\0';
+	ctx->buffersz = ctx->buffersz + remsize;
+
+    }
+
+    return (size * nmemb);
+}
+
+void* startstreaming_tfunc(void* param) {
+    
+    struct streamcb_ctx* ctx = (struct streamcb_ctx *)param;
+
+    char *signedurl = acct_sign_url2(twt_usrstr_url, NULL, OA_HMAC, NULL, ctx->acct);
+
+    CURL* streamcurl = curl_easy_init();
+
+    curl_easy_setopt(streamcurl,CURLOPT_URL,signedurl);
+    curl_easy_setopt(streamcurl, CURLOPT_FAILONERROR, 1);
+    curl_easy_setopt(streamcurl, CURLOPT_WRITEFUNCTION, streamcb); //TODO 
+
+    curl_easy_setopt(streamcurl, CURLOPT_WRITEDATA, ctx); //TODO 
+
+    int curlstatus = curl_easy_perform(streamcurl);
+    return NULL;
+}
+
+
+int startstreaming(struct btree* timeline, struct t_account* acct, enum timelinetype tt, stream_cb cb, void* cbctx) {
+
+    pthread_t streamthread;
+
+    struct streamcb_ctx* ctx = malloc(sizeof(struct streamcb_ctx));
+
+    ctx->timeline = timeline; ctx->acct=acct; ctx->tt = tt;
+    ctx->buffer = NULL; ctx->buffersz = 0; ctx->cb = cb; ctx->cbctx = cbctx;
+
+    int r = pthread_create(&streamthread,NULL,startstreaming_tfunc,ctx);
+
+    if (r != 0) printf("pthread_create returned %d\n",r);
+    return 0;
+}
+
+int stopstreaming() {
+    return 0;
+}

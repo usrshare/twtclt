@@ -102,7 +102,30 @@ struct t_user {
     int perspectival;
     time_t retrieved_on;
 };
-
+enum eventtype {
+    access_revoked,
+    block,
+    unblock,
+    favorite,
+    unfavorite,
+    follow,
+    unfollow,
+    list_created,
+    list_destroyed,
+    list_updated,
+    list_member_added,
+    list_member_removed,
+    list_user_subscribed,
+    list_user_unsubscribed,
+    user_update,
+};
+struct t_event {
+    uint64_t target_user_id;
+    uint64_t source_user_id;
+    enum eventtype type;
+    uint64_t target_object_id;
+    time_t created_at;
+};
 enum collision_behavior {
     no_replace,
     replace,

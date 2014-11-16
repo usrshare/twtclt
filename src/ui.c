@@ -33,6 +33,7 @@ struct drawcol_ctx{
 
 struct t_timelineset {
     int enabled;
+    uint64_t curtwtid; //id of selected tweet
     struct t_account* acct;
     enum timelinetype tt;
     uint64_t userid;
@@ -90,10 +91,16 @@ struct scrollto_ctx {
     int topline;
     int lines;
     int rows;
+    int maxrow;
+    uint64_t twtid;
+    int res_tl;
+    int res_ln;
 };
 
 void scrollto_btcb(uint64_t id, void* ctx) {
     struct scrollto_ctx* sts = (struct scrollto_ctx*) ctx;
+
+    if (sts->res_tl != -1) return;
 
     struct tweetbox* pad = pad_search(id);
 
@@ -101,25 +108,34 @@ void scrollto_btcb(uint64_t id, void* ctx) {
 
     sts->topline += sts->lines;
     sts->lines = pad->lines;
+
+    if ( (id == sts->twtid) || (sts->rows == sts->maxrow) ) { 
+	sts->res_tl = sts->topline;
+	sts->res_ln = sts->lines;
+    }
+
     sts->rows++;
 
     return;
 }
 
 int scrollto (int col, int row) {
-    struct scrollto_ctx sts = {0,0,0};
+    struct scrollto_ctx sts = {.topline = 0, .lines = 0, .rows = 0, .maxrow = row, .twtid = 0, .res_tl = -1, .res_ln = 0};
 
-    int curel = 0;
-
-    bt_read2(columns[col],scrollto_btcb,&sts,desc,row+1,&curel);
-
-    //lprintf("COLS-2 = %d, topline = %d, lines = %d\n",(LINES-2),sts.topline,sts.lines);
+    bt_read(columns[col],scrollto_btcb,&sts,desc);
 
     if (colset[col].scrollback > sts.topline) colset[col].scrollback = sts.topline;
-
     if (sts.topline - colset[col].scrollback + sts.lines > COLHEIGHT) colset[col].scrollback = sts.topline + sts.lines - COLHEIGHT;
+    return (sts.rows - 1);
+}
 
-    //TODO
+int scrolltotwt (int col, uint64_t twtid) {
+    struct scrollto_ctx sts = {.topline = 0, .lines = 0, .rows = 0, .maxrow = -1, .twtid = twtid, .res_tl = -1, .res_ln = 0};
+
+    bt_read(columns[col],scrollto_btcb,&sts,desc);
+
+    if (colset[col].scrollback > sts.topline) colset[col].scrollback = sts.topline;
+    if (sts.topline - colset[col].scrollback + sts.lines > COLHEIGHT) colset[col].scrollback = sts.topline + sts.lines - COLHEIGHT;
     return (sts.rows - 1);
 }
 
@@ -327,10 +343,94 @@ int msgbox(char* message, enum msgboxclass class, int buttons_n, char** btntext)
     return selbtn;
 }
 
+struct row_tweet_ctx {
+    uint64_t id;
+    int cur_ind;
+    int index;
+    int shift;
+    uint64_t cur_id;
+    uint64_t res_id;
+    int diff_less;
+};
+
+void row_tweet_cb(uint64_t id, void* param) {
+    struct row_tweet_ctx* ctx = (struct row_tweet_ctx*) param;
+
+    if ( (ctx->index == -1) && (ctx->id = id) )
+	ctx->index = ctx->cur_ind;
+
+    if ( (ctx->id == 0) && (ctx->index == ctx->cur_ind) )
+	ctx->id = id;
+
+    ctx->cur_ind++;
+}
+
+void row_tweet_shift_cb(uint64_t id, void* param) {
+    struct row_tweet_ctx* ctx = (struct row_tweet_ctx*) param;
+
+    if ( ((ctx->diff_less) && (ctx->id < id)) || ((!(ctx->diff_less)) && (ctx->id > id)) ) ctx->index++;
+
+    if (ctx->shift == ctx->index) ctx->res_id = id;
+
+    ctx->cur_id = id;
+
+}
+
+
+uint64_t row_tweet_shift(int column, uint64_t id, int indexdiff) {
+
+    //returns the tweet id that's N columns above or below in the column list.2
+    if (columns[column] == NULL) return 0;
+
+    struct row_tweet_ctx ctx = {.id = id, .index = 0, .shift = abs(indexdiff), .res_id = 0, .diff_less = (indexdiff < 0) };
+    
+    if (indexdiff == 0) return id;
+
+    if (indexdiff > 0) bt_read(columns[column], row_tweet_shift_cb, &ctx, desc); else
+	bt_read(columns[column], row_tweet_shift_cb, &ctx, asc);
+
+    uint64_t border_id = (indexdiff > 0 ? 0 : UINT64_MAX );
+
+    uint64_t res = ( ctx.res_id ? ctx.res_id : border_id );
+
+    lprintf("row_tweet_shift %d on %" PRIu64 " returns %" PRIu64 "\n",indexdiff,id,res);
+    return res;
+}
+
+
+uint64_t row_tweet_index(int column, uint64_t id, int index) {
+
+    //either returns the tweet id, if id is zero, or index, if index is -1.
+    if ((index != -1) && (id != 0)) return 0;
+    if (columns[column] == NULL) return 0;
+
+    struct row_tweet_ctx ctx = {.id = id, .cur_ind = 0, .index = index};
+    
+    bt_read(columns[column], row_tweet_cb, &ctx, desc);
+
+    if (index == -1) return ctx.index;
+    if (id == 0) return ctx.id;
+}
+
+struct uicbctx {
+    int colnum;
+};
+
+void uistreamcb(uint64_t id, void* cbctx) {
+    struct uicbctx* ctx = (struct uicbctx *)cbctx;
+    draw_column2(ctx->colnum,colset[ctx->colnum].scrollback,columns[ctx->colnum],0);
+    scrolltotwt(ctx->colnum,colset[ctx->colnum].curtwtid);
+    draw_column2(ctx->colnum,colset[ctx->colnum].scrollback,columns[ctx->colnum],1);
+}
+
 void* uithreadfunc(void* param) {
     // -- test.
+    
 
-    cur_col = 0; cur_row = 0; int uiloop = 1;
+    for (int i=0; i < MAXCOLUMNS; i++)
+       if (colset[i].enabled) colset[i].curtwtid = UINT64_MAX; //first possible tweet
+
+    cur_col = 0; int uiloop = 1;
 
     while(uiloop) {
 
@@ -357,27 +457,29 @@ void* uithreadfunc(void* param) {
 	    case KEY_LEFT:
 		// Select next tweet, TODO make scrolling follow selection
 		if (cur_col > 0) cur_col--;
-		cur_row = scrollto(cur_col,cur_row); 	
+		scrolltotwt(cur_col,colset[cur_col].curtwtid); 	
 		draw_all_columns();
 		break;
 	    case KEY_RIGHT:
 		// Select previous tweet, TODO make scrolling follow selection
 		if (colset[cur_col+1].enabled) cur_col++;
-		cur_row = scrollto(cur_col,cur_row); 	
+		scrolltotwt(cur_col,colset[cur_col].curtwtid); 	
 		draw_all_columns();
 		break;
 	    case 'j':
-	    case KEY_DOWN:
+	    case KEY_DOWN: {
 		// Select next tweet, TODO make scrolling follow selection
-		cur_row++; cur_row = scrollto(cur_col,cur_row);
+		colset[cur_col].curtwtid = row_tweet_shift(cur_col, colset[cur_col].curtwtid, 1);
+		scrolltotwt(cur_col,colset[cur_col].curtwtid);
 		draw_all_columns();
-		break;
+		break; }
 	    case 'k':
-	    case KEY_UP:
+	    case KEY_UP: {
 		// Select previous tweet, TODO make scrolling follow selection
-		if (cur_row >= 1) cur_row--; else cur_row = 0; cur_row = scrollto(cur_col,cur_row);
+		colset[cur_col].curtwtid = row_tweet_shift(cur_col, colset[cur_col].curtwtid, -1);
+		scrolltotwt(cur_col,colset[cur_col].curtwtid);
 		draw_all_columns();
-		break;
+		break; }
 	    case KEY_NPAGE:
 		// Scroll one page down
 		(colset[cur_col].scrollback)+=COLHEIGHT;
@@ -398,6 +500,13 @@ void* uithreadfunc(void* param) {
 		// Load timeline. Tweets will be added.
 		reload_all_columns();
 		draw_all_columns();
+		break;
+	    case 's': {
+		int r = msgbox("This is a very experimental feature. Are you sure you want to enable streaming?",msg_warning,2,yesno);
+		struct uicbctx* sc = malloc(sizeof(struct uicbctx));
+		sc->colnum = 0;
+		if (r == 0) startstreaming(columns[0],colset[0].acct,colset[0].tt,uistreamcb,sc);
+		draw_all_columns(); }
 		break;
 	    case 't':
 		msgbox("Tweeting not yet supported.",msg_error,0,NULL);
@@ -555,8 +664,8 @@ void drawcol_cb(uint64_t id, void* ctx) {
 
     struct tweetbox* pad = pad_search(id); 
 
-    int cursel = ((dc->row == cur_row) && (dc->column == cur_col));
-
+    int cursel = ( (cur_col == dc->column) && (id == colset[dc->column].curtwtid) );
+	    
     if (pad == NULL) return;
 
     if (cursel) {
@@ -610,8 +719,7 @@ void draw_column_limit(int column, int scrollback, struct btree* timeline, int t
     doupdate();
 } 
 
-
-void draw_column(int column, int scrollback, struct btree* timeline) {
+void draw_column2(int column, int scrollback, struct btree* timeline, int do_update) {
     //btree should contain tweet IDs.
 
     bt_read(timeline, drawtwt_cb, NULL, desc);
@@ -621,8 +729,16 @@ void draw_column(int column, int scrollback, struct btree* timeline) {
 
     //int curcol = (dc.curline - dc.scrollback);
 
-    doupdate();
+    if (do_update) doupdate();
 } 
+
+void draw_column(int column, int scrollback, struct btree* timeline) {
+    //btree should contain tweet IDs.
+    draw_column2(column,scrollback,timeline,1);
+} 
+
+
+
 
 WINDOW* tweetpad(struct t_tweet* tweet, int* linecount, int selected) {
     if (tweet == NULL) return NULL;
