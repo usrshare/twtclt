@@ -2,6 +2,7 @@
 
 #include <stdio.h>
 #include <locale.h>
+#include <string.h>
 #include <unistd.h>
 #include <pthread.h>
 #include "config.h"
@@ -14,7 +15,27 @@
 
 int addAccount() {
 
-    struct t_account *myacct = newAccount();
+    printf("Account creation guide:\n\n");
+    
+    char baseurl[128];
+    memset(baseurl,'\0',sizeof baseurl);
+
+    /*
+    printf("This client can be used to access both Twitter and Twitter API compatible "
+	   "alternative resources, such as StatusNet. This is an experimental feature, "
+	   "and no guarantees are provided. \n\n"
+	   "If you are going to use this client for Twitter, please press ENTER (leave the field "
+	   "empty). Otherwise, input your API base URL in the field below.\n\n");
+
+    printf(">");
+
+    fgets(baseurl,127,stdin);
+
+    baseurl[strlen(baseurl)-1]='\0'; //removing the newline
+
+    */
+    struct t_account *myacct = newAccount(baseurl);
+
     int r = request_token(myacct);
 
     if (r != 0) { printf("request_token returned %d\n",r); return 1;}

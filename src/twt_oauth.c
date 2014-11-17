@@ -1,3 +1,4 @@
+// vim: cin:sts=4:sw=4 
 #include <inttypes.h>
 #include <stdlib.h>
 #include <stdio.h>
@@ -10,24 +11,27 @@
 #include "log.h"
 
 struct t_oauthkey {
+    char customurl[128]; //if not empty, allows to use a custom url instead of api.twitter.com
     char tkey[128]; //token key
     char tsct[128]; //token secret
 };
 
+const char twt_base[] = "https://api.twitter.com/"; //base url for twitter
+
 const char twt_reqt[] = "https://api.twitter.com/oauth/request_token?oauth_callback=oob"; //request url
 const char twt_apin[] = "https://api.twitter.com/oauth/access_token?oauth_verifier="; //access url, append PIN
-
 const char twt_auth[] = "https://api.twitter.com/oauth/authorize"; //authorize url
 const char twt_auth2[] = "?oauth_token="; //authorize url part 2
-
 
 const char app_ckey[] = "EpnGWtYpzGUo6DflEPcQYy3y8"; //consumer key
 const char app_csct[] = "6Vue8PKdb6j879pheDHPGPzOrKsVFZ5Eg6DPJ8WbcOADDq8DdV"; //consumer secret here.
 
-struct t_account* newAccount() {
+struct t_account* newAccount2(char* baseurl) {
     struct t_account* na = malloc(sizeof (struct t_account));
     memset(na->name,'\0',sizeof na->name);
     struct t_oauthkey* ok = malloc(sizeof (struct t_oauthkey));
+    memset(ok->customurl,'\0',sizeof ok->customurl);
+    if ( (baseurl != NULL) && (strlen(baseurl) != 0) ) strncpy(ok->customurl,baseurl,127);
     memset(ok->tkey,'\0',sizeof ok->tkey);
     memset(ok->tsct,'\0',sizeof ok->tsct);
     na->auth = 0;
@@ -35,6 +39,12 @@ struct t_account* newAccount() {
     na->key = ok;
     return na;
 }
+
+struct t_account* newAccount() {
+    return newAccount2(NULL);
+}
+
+
 void destroyAccount(struct t_account* acct){
     if (acct->name) free(acct->name);
     if (acct->key) {
@@ -45,7 +55,6 @@ void destroyAccount(struct t_account* acct){
     }
     free(acct);
 }
-
 
 int request_token(struct t_account* acct) {
     // STEP 1 of oauth process. Get a request token for your application.

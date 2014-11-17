@@ -25,7 +25,8 @@ const char twt_usertl_url[] = "https://api.twitter.com/1.1/statuses/user_timelin
 const char twt_menttl_url[] = "https://api.twitter.com/1.1/statuses/mentions_timeline.json";
 const char twt_search_url[] = "https://api.twitter.com/1.1/search/tweets.json";
 const char twt_dirmsg_url[] = "https://api.twitter.com/1.1/direct_messages.json";
-
+const char twt_status_url[] = "https://api.twitter.com/1.1/statuses/show.json"; //load single tweet
+const char twt_user_url[] =   "https://api.twitter.com/1.1/users/show.json"; //load single user
 const char twt_usrstr_url[] = "https://userstream.twitter.com/1.1/user.json"; //user streams
 
 // tweet and user hashtable functions BEGIN
@@ -384,6 +385,48 @@ int parse_timeline(struct btree* timeline, struct t_account* acct, enum timeline
     return 0;
 }
 
+uint64_t parse_single_tweet(struct t_account* acct, char* timelinereply) {
+
+    struct json_tokener* jt = json_tokener_new();
+    enum json_tokener_error jerr;
+
+    struct json_object* tweet = json_tokener_parse_ex(jt,timelinereply,strlen(timelinereply));
+    jerr = json_tokener_get_error(jt);
+    if (jerr != json_tokener_success) {
+	lprintf("JSON Tokener Error: %s\n",json_tokener_error_desc(jerr));
+    }
+
+    if (json_object_get_type(tweet) != json_type_object) {
+	lprintf("Something is wrong. Timeline's JSON isn't an object, but a %s\n",json_type_to_name(json_object_get_type(tweet)));
+	lprintf("full reply:%s\n",timelinereply);
+	return 1; }
+
+    uint64_t tweet_id = parse_json_tweet(acct,tweet,0);
+    json_tokener_free(jt);
+    return tweet_id;
+}
+
+uint64_t parse_single_user(struct t_account* acct, char* timelinereply) {
+
+    struct json_tokener* jt = json_tokener_new();
+    enum json_tokener_error jerr;
+
+    struct json_object* user = json_tokener_parse_ex(jt,timelinereply,strlen(timelinereply));
+    jerr = json_tokener_get_error(jt);
+    if (jerr != json_tokener_success) {
+	lprintf("JSON Tokener Error: %s\n",json_tokener_error_desc(jerr));
+    }
+
+    if (json_object_get_type(user) != json_type_object) {
+	lprintf("Something is wrong. Timeline's JSON isn't an object, but a %s\n",json_type_to_name(json_object_get_type(user)));
+	lprintf("full reply:%s\n",timelinereply);
+	return 1; }
+
+    uint64_t user_id = parse_json_user(acct,user,0);
+    json_tokener_free(jt);
+    return user_id;
+}
+
 int load_timeline_ext(struct btree* timeline, struct t_account* acct, enum timelinetype tt, uint64_t userid, char* customtype, int since_id, int max_id, int count, int trim_user, int exclude_replies, int contributor_details, int include_entities) {
 
     char *baseurl = NULL;
@@ -438,6 +481,7 @@ int load_timeline_ext(struct btree* timeline, struct t_account* acct, enum timel
 
     parse_timeline(timeline, acct, tt, reply);
 
+    free(reply);
     free(baseurl);
     return 0;
 }
@@ -452,6 +496,93 @@ int load_global_timeline(struct btree* timeline, enum timelinetype tt, uint64_t 
     return 0;    
 }
 
+uint64_t load_tweet(struct t_account* acct, uint64_t tweetid) {
+
+    char *baseurl = strdup(twt_status_url);
+    baseurl = addparam_int(baseurl,"id",tweetid,1);
+
+    char* req_url = acct_sign_url2(baseurl, NULL, OA_HMAC, NULL, acct);
+    char* reply = oauth_http_get(req_url,NULL);
+    if (req_url) free(req_url);
+
+    if (!reply) return 1;
+
+    lprintf("Received a reply.\n");
+
+    uint64_t resid = parse_single_tweet(acct,reply);
+
+    free(reply);
+    free(baseurl);
+    return resid;
+}
+uint64_t load_user(struct t_account* acct, uint64_t userid, char* username) {
+
+    char *baseurl = strdup(twt_status_url);
+
+    if (username != NULL)
+	baseurl = addparam(baseurl,"screen_name",username,1); else
+	    baseurl = addparam_int(baseurl,"id",userid,1);
+
+    char* req_url = acct_sign_url2(baseurl, NULL, OA_HMAC, NULL, acct);
+    char* reply = oauth_http_get(req_url,NULL);
+    if (req_url) free(req_url);
+
+    if (!reply) return 1;
+
+    lprintf("Received a reply.\n");
+
+    uint64_t resid = parse_single_user(acct,reply);
+
+    free(reply);
+    free(baseurl);
+    return resid;
+
+}
+
+struct t_tweet* get_tweet(struct t_account* acct, uint64_t tweetid) {
+
+    char *baseurl = strdup(twt_status_url);
+    baseurl = addparam_int(baseurl,"id",tweetid,1);
+
+    char* req_url = acct_sign_url2(baseurl, NULL, OA_HMAC, NULL, acct);
+    char* reply = oauth_http_get(req_url,NULL);
+    if (req_url) free(req_url);
+
+    if (!reply) return 1;
+
+    lprintf("Received a reply.\n");
+
+    uint64_t resid = parse_single_tweet(acct,reply);
+
+    free(reply);
+    free(baseurl);
+    return resid;
+}
+struct t_tweet* get_user(struct t_account* acct, uint64_t userid, char* username) {
+
+    char *baseurl = strdup(twt_status_url);
+
+    if (username != NULL)
+	baseurl = addparam(baseurl,"screen_name",username,1); else
+	    baseurl = addparam_int(baseurl,"id",userid,1);
+
+    char* req_url = acct_sign_url2(baseurl, NULL, OA_HMAC, NULL, acct);
+    char* reply = oauth_http_get(req_url,NULL);
+    if (req_url) free(req_url);
+
+    if (!reply) return 1;
+
+    lprintf("Received a reply.\n");
+
+    uint64_t resid = parse_single_user(acct,reply);
+
+    free(reply);
+    free(baseurl);
+    return resid;
+
+}
+
+
 struct streamcb_ctx {
     struct btree* timeline;
     struct t_account* acct;
@@ -461,7 +592,6 @@ struct streamcb_ctx {
     stream_cb cb;
     void* cbctx;
 };
-
 int parsestreamingmsg(char *msg, size_t msgsize, struct streamcb_ctx* ctx) {
 
     struct json_tokener* jt = json_tokener_new();
@@ -516,7 +646,6 @@ int parsestreamingmsg(char *msg, size_t msgsize, struct streamcb_ctx* ctx) {
     free(fn);
     return 0;
 }
-
 size_t streamcb(char *ptr, size_t size, size_t nmemb, void *userdata) {
 
     struct streamcb_ctx* ctx = (struct streamcb_ctx *)userdata;
@@ -552,9 +681,8 @@ size_t streamcb(char *ptr, size_t size, size_t nmemb, void *userdata) {
 
     return (size * nmemb);
 }
-
 void* startstreaming_tfunc(void* param) {
-    
+
     struct streamcb_ctx* ctx = (struct streamcb_ctx *)param;
 
     char *signedurl = acct_sign_url2(twt_usrstr_url, NULL, OA_HMAC, NULL, ctx->acct);
@@ -570,8 +698,6 @@ void* startstreaming_tfunc(void* param) {
     int curlstatus = curl_easy_perform(streamcurl);
     return NULL;
 }
-
-
 int startstreaming(struct btree* timeline, struct t_account* acct, enum timelinetype tt, stream_cb cb, void* cbctx) {
 
     pthread_t streamthread;
@@ -586,7 +712,6 @@ int startstreaming(struct btree* timeline, struct t_account* acct, enum timeline
     if (r != 0) printf("pthread_create returned %d\n",r);
     return 0;
 }
-
 int stopstreaming() {
     return 0;
 }
