@@ -6,6 +6,7 @@
 
 #include "log.h"
 #include "twitter.h"
+#include "twt_oauth.h"
 #include "twt_time.h"
 #include "ui.h"
 #include "stringex.h"
@@ -730,7 +731,7 @@ void update_colhdr(int column) {
     switch(colset[column].tt) {
 
 	case home: {
-		       //snprintf(coldesc,32,"@%s",colset[column].acct->name);
+		       snprintf(coldesc,32,"@%s",colset[column].acct->name);
 		       break; }
 	case user: {
 		       //snprintf(coldesc,32,"#%d's tweets",colset[column].userid);

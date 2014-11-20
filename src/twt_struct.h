@@ -147,10 +147,10 @@ int uht_insert(struct t_user* user, enum collision_behavior cbeh);
 int uht_delete(uint64_t id);
 struct t_user* uht_search(uint64_t id);
 
-uint64_t sntohash(char* screen_name);
 int urt_insert(char* screen_name, uint64_t id, enum collision_behavior cbeh);
 int urt_delete(char* screen_name);
 uint64_t urt_search(char* screen_name);
+uint64_t* urt_search_ptr(char* screen_name);
 
 
 struct t_user* uht_search_n(char* screen_name);

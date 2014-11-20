@@ -8,6 +8,7 @@
 #include <time.h>
 #include <mojibake.h>
 #include <assert.h>
+#include <pthread.h>
 
 #include "config.h"
 #include "log.h"
@@ -37,7 +38,8 @@ int initcurl() {
 
 int inithashtables(){
     tweetht = ht_create(1024);
-    userht = ht_create(256);
+    userht = ht_create(512);
+    urefht = ht_create(512);
 
     return 0;
 }
@@ -315,7 +317,10 @@ uint64_t parse_json_user(struct t_account* acct, json_object* user, int perspect
 
     //printf("Parsed user %lld.\n",id);
 
-    int r = uht_insert(&nu,no_replace); if (r != 0) lprintf("uht_insert tweet returned %d\n",r);
+    int r = uht_insert(&nu,no_replace); if (r != 0) lprintf("uht_insert user returned %d\n",r);
+
+    r = urt_insert(nu.screen_name, nu.id, replace);
+    if (r != 0) lprintf("urt_insert screen name returned %d\n",r);
 
     return nu.id;
 }
@@ -553,19 +558,20 @@ struct t_tweet* get_tweet(struct t_account* acct, uint64_t tweetid) {
     return NULL;
 
 }
-struct t_tweet* get_user(struct t_account* acct, uint64_t userid, char* username) {
+struct t_user* get_user(struct t_account* acct, uint64_t userid, char* username) {
 
-    struct t_user* u = uht_search(userid);
+    uint64_t uid = ( (username == NULL) ? userid : urt_search(username) );
+
+    struct t_user* u = uht_search(uid);
     if (u != NULL) return u;
 
-    uint64_t id = load_user(acct,userid,username);
-    if (id != userid) return NULL;
+    uint64_t rid = load_user(acct,userid,username);
+    if (rid != uid) return NULL;
 
-    u = uht_search(userid);
+    u = uht_search(rid);
     if (u != NULL) return u;
 
     return NULL;
-
 }
 
 
@@ -604,7 +610,7 @@ int parsestreamingmsg(char *msg, size_t msgsize, struct streamcb_ctx* ctx) {
 
     struct t_entity entity;
 
-    char* fn;// enum json_type ft;
+    const char* fn;// enum json_type ft;
 
     memset(&entity,'\0',sizeof entity);
 
@@ -629,7 +635,7 @@ int parsestreamingmsg(char *msg, size_t msgsize, struct streamcb_ctx* ctx) {
 	if (ctx->cb != NULL) ctx->cb(tweet_id,ctx->cbctx);
     }
 
-    free(fn);
+    free((void*)fn);
     return 0;
 }
 size_t streamcb(char *ptr, size_t size, size_t nmemb, void *userdata) {

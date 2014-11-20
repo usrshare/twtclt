@@ -45,28 +45,16 @@ struct t_tweet* tht_search(uint64_t id){
     return tweetdup((struct t_tweet*)ht_search(tweetht,id));
 }
 
-uint64_t sntohash(char* screen_name) {
-    char sn[16];
-    strncpy(sn,screen_name,15);
-
-    uint64_t hash = 0;
-    for (int i=0; i<4; i++)
-	for (int j=0; j<4; i++)
-	    hash += ((unsigned char)(sn[4*i+j]) << (8 * j));
-
-    return hash;
-}
 int urt_insert(char* screen_name, uint64_t id, enum collision_behavior cbeh){
 
-    struct t_user_ref* new = malloc(sizeof(struct t_user_ref));
-    new->user_id = id;
-    strncpy(new->screen_name,screen_name,15); 
+    uint64_t* uid = malloc(sizeof(uint64_t));
+    *uid = id;
 
-    int r = ht_insert(urefht,sntohash(screen_name),new);
+    int r = ht_insert_a(urefht,screen_name,uid);
 
     if (r == 2) {
 
-	struct t_user_ref* old = urt_search(screen_name);
+	uint64_t* old = urt_search_ptr(screen_name);
 
 	switch(cbeh) {
 	    case no_replace:
@@ -78,23 +66,30 @@ int urt_insert(char* screen_name, uint64_t id, enum collision_behavior cbeh){
 		r = urt_delete(screen_name);
 		if (r != 0) {free(old); return r;}
 		free(old);
-		r = ht_insert(urefht,sntohash(screen_name),new);
+		r = ht_insert_a(urefht,screen_name,uid);
 		if (r != 0) {free(old); return r;}
 		break;
 	}
     }
 
-    if (r != 0) {free(new); return r;}
+    if (r != 0) {free(uid); return r;}
     return 0;
 
 }
 int urt_delete(char* screen_name){
-    struct t_user_ref* old = (struct t_user_ref*)ht_search(urefht,sntohash(screen_name));
+    uint64_t* old = (uint64_t*)ht_search_a(urefht,screen_name);
     if (old != NULL) free(old);
-    return ht_delete(urefht,sntohash(screen_name));
+    return ht_delete_a(urefht,screen_name);
 
 }
+uint64_t* urt_search_ptr(char* screen_name){
+    void* r = ht_search_a(urefht,screen_name);
+    return (uint64_t*)r;
+}
+
 uint64_t urt_search(char* screen_name){
+    uint64_t r = *(urt_search_ptr(screen_name));
+    return r;
 }
 
 
@@ -136,10 +131,6 @@ int uht_delete(uint64_t id){
 }
 struct t_user* uht_search(uint64_t id){
     return userdup((struct t_user*)ht_search(userht,id));
-}
-
-struct t_user* uht_search_n(char* screen_name) {
-    return NULL;
 }
 
 // tweet and user hashtable functions END
