@@ -142,9 +142,11 @@ int scrolltotwt (int col, uint64_t twtid) {
 
 //---
 
+#define min(x,y) ( (x) < (y) ? (x) : (y) )
+
 int draw_all_columns() {
 
-    for (int i=0; i < MAXCOLUMNS; i++) {
+    for (int i=leftmostcol; i < min(leftmostcol + visiblecolumns,MAXCOLUMNS); i++) {
 
 	if (colset[i].enabled) {
 
@@ -700,7 +702,7 @@ void drawcol_cb(uint64_t id, void* ctx) {
 	int boty = ( (dc->curline - dc->scrollback + lines <= COLHEIGHT+1) ? (dc->curline - dc->scrollback + lines) : COLHEIGHT);
 
 	if ( (dc->lines == 0) || (boty >= dc->topline) || (topy <= dc->topline + dc->lines))
-	    pnoutrefresh(tp,skipy,0,topy+2,(dc->column * colwidth),boty+1,(dc->column +1) *colwidth - 1);
+	    pnoutrefresh(tp,skipy,0,topy+2,( (dc->column - leftmostcol)  * colwidth),boty+1,(dc->column - leftmostcol +1) *colwidth - 1);
 
     }
 

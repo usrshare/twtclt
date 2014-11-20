@@ -36,7 +36,6 @@ struct t_contributor {
     uint64_t id;
     char screen_name[16];
 };
-
 struct t_tweet {
     struct t_account* acct;
     time_t created_at; //should be time
@@ -65,6 +64,10 @@ struct t_tweet {
     int possibly_sensitive;
     int perspectival;
     time_t retrieved_on;
+};
+struct t_user_ref {
+    uint64_t user_id;
+    char screen_name[16];
 };
 struct t_user {
     struct t_account* acct;
@@ -134,6 +137,7 @@ enum collision_behavior {
 
 struct hashtable* tweetht; //tweet cache hash table.
 struct hashtable* userht; //user cache hash table.
+struct hashtable* urefht; //user reference cache hash table.
 
 int tht_insert(struct t_tweet* tweet, enum collision_behavior cbeh);
 int tht_delete(uint64_t id);
@@ -142,6 +146,14 @@ struct t_tweet* tht_search(uint64_t id);
 int uht_insert(struct t_user* user, enum collision_behavior cbeh);
 int uht_delete(uint64_t id);
 struct t_user* uht_search(uint64_t id);
+
+uint64_t sntohash(char* screen_name);
+int urt_insert(char* screen_name, uint64_t id, enum collision_behavior cbeh);
+int urt_delete(char* screen_name);
+uint64_t urt_search(char* screen_name);
+
+
+struct t_user* uht_search_n(char* screen_name);
 
 struct t_entity* entitydup(struct t_entity* orig);
 struct t_tweet* tweetdup(struct t_tweet* orig);

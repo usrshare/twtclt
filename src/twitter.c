@@ -541,44 +541,30 @@ uint64_t load_user(struct t_account* acct, uint64_t userid, char* username) {
 
 struct t_tweet* get_tweet(struct t_account* acct, uint64_t tweetid) {
 
-    char *baseurl = strdup(twt_status_url);
-    baseurl = addparam_int(baseurl,"id",tweetid,1);
+    struct t_tweet* t = tht_search(tweetid);
+    if (t != NULL) return t;
 
-    char* req_url = acct_sign_url2(baseurl, NULL, OA_HMAC, NULL, acct);
-    char* reply = oauth_http_get(req_url,NULL);
-    if (req_url) free(req_url);
+    uint64_t id = load_tweet(acct,tweetid);
+    if (id != tweetid) return NULL;
 
-    if (!reply) return 1;
+    t = tht_search(tweetid);
+    if (t != NULL) return t;
 
-    lprintf("Received a reply.\n");
+    return NULL;
 
-    uint64_t resid = parse_single_tweet(acct,reply);
-
-    free(reply);
-    free(baseurl);
-    return resid;
 }
 struct t_tweet* get_user(struct t_account* acct, uint64_t userid, char* username) {
 
-    char *baseurl = strdup(twt_status_url);
+    struct t_user* u = uht_search(userid);
+    if (u != NULL) return u;
 
-    if (username != NULL)
-	baseurl = addparam(baseurl,"screen_name",username,1); else
-	    baseurl = addparam_int(baseurl,"id",userid,1);
+    uint64_t id = load_user(acct,userid,username);
+    if (id != userid) return NULL;
 
-    char* req_url = acct_sign_url2(baseurl, NULL, OA_HMAC, NULL, acct);
-    char* reply = oauth_http_get(req_url,NULL);
-    if (req_url) free(req_url);
+    u = uht_search(userid);
+    if (u != NULL) return u;
 
-    if (!reply) return 1;
-
-    lprintf("Received a reply.\n");
-
-    uint64_t resid = parse_single_user(acct,reply);
-
-    free(reply);
-    free(baseurl);
-    return resid;
+    return NULL;
 
 }
 

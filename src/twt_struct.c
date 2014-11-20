@@ -45,6 +45,59 @@ struct t_tweet* tht_search(uint64_t id){
     return tweetdup((struct t_tweet*)ht_search(tweetht,id));
 }
 
+uint64_t sntohash(char* screen_name) {
+    char sn[16];
+    strncpy(sn,screen_name,15);
+
+    uint64_t hash = 0;
+    for (int i=0; i<4; i++)
+	for (int j=0; j<4; i++)
+	    hash += ((unsigned char)(sn[4*i+j]) << (8 * j));
+
+    return hash;
+}
+int urt_insert(char* screen_name, uint64_t id, enum collision_behavior cbeh){
+
+    struct t_user_ref* new = malloc(sizeof(struct t_user_ref));
+    new->user_id = id;
+    strncpy(new->screen_name,screen_name,15); 
+
+    int r = ht_insert(urefht,sntohash(screen_name),new);
+
+    if (r == 2) {
+
+	struct t_user_ref* old = urt_search(screen_name);
+
+	switch(cbeh) {
+	    case no_replace:
+		free(old);
+		return 2;
+		break;
+	    case update:
+	    case replace:
+		r = urt_delete(screen_name);
+		if (r != 0) {free(old); return r;}
+		free(old);
+		r = ht_insert(urefht,sntohash(screen_name),new);
+		if (r != 0) {free(old); return r;}
+		break;
+	}
+    }
+
+    if (r != 0) {free(new); return r;}
+    return 0;
+
+}
+int urt_delete(char* screen_name){
+    struct t_user_ref* old = (struct t_user_ref*)ht_search(urefht,sntohash(screen_name));
+    if (old != NULL) free(old);
+    return ht_delete(urefht,sntohash(screen_name));
+
+}
+uint64_t urt_search(char* screen_name){
+}
+
+
 int uht_insert(struct t_user* user, enum collision_behavior cbeh){
     struct t_user* new = userdup(user);
 
@@ -67,7 +120,6 @@ int uht_insert(struct t_user* user, enum collision_behavior cbeh){
 		free(old);
 		r = ht_insert(userht,user->id,new);
 		if (r != 0) {free(old); return r;}
-		return 0;
 		break;
 	}
     }
@@ -84,6 +136,10 @@ int uht_delete(uint64_t id){
 }
 struct t_user* uht_search(uint64_t id){
     return userdup((struct t_user*)ht_search(userht,id));
+}
+
+struct t_user* uht_search_n(char* screen_name) {
+    return NULL;
 }
 
 // tweet and user hashtable functions END
