@@ -503,6 +503,8 @@ int load_global_timeline(struct btree* timeline, enum timelinetype tt, uint64_t 
 
 uint64_t load_tweet(struct t_account* acct, uint64_t tweetid) {
 
+    acct = def_acct(acct);
+
     char *baseurl = strdup(twt_status_url);
     baseurl = addparam_int(baseurl,"id",tweetid,1);
 
@@ -521,6 +523,8 @@ uint64_t load_tweet(struct t_account* acct, uint64_t tweetid) {
     return resid;
 }
 uint64_t load_user(struct t_account* acct, uint64_t userid, char* username) {
+    
+    acct = def_acct(acct);
 
     char *baseurl = strdup(twt_status_url);
 
@@ -573,7 +577,6 @@ struct t_user* get_user(struct t_account* acct, uint64_t userid, char* username)
 
     return NULL;
 }
-
 
 struct streamcb_ctx {
     struct btree* timeline;

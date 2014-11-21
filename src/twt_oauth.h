@@ -20,6 +20,9 @@ struct t_account {
 int add_acct(struct t_account* acct);
 int del_acct(struct t_account* acct);
 
+// return account specified or default account if NULL
+struct t_account* def_acct(struct t_account* acct);
+
 // returns an oauth-signed URL to use. the returned URL will be malloc'd, so don't forget to free() it.
 char* acct_sign_url2(const char* url, char** postargs, OAuthMethod method, const char* http_method, struct t_account* acct);
 

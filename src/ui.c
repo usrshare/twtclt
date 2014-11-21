@@ -722,6 +722,12 @@ void draw_headers() {
 
 }
 
+int get_username(uint64_t uid, char* out, size_t maxsz) {
+    struct t_user* u = get_user(NULL,uid,NULL);
+    if (u == NULL) return 0; else strncpy(out,u->screen_name,maxsz);
+    userdel(u); return strlen(out);
+}
+
 void update_colhdr(int column) {
 
     WINDOW* newhdr = derwin(colhdrs, 1, colwidth, 0, (column - leftmostcol) * colwidth);
@@ -734,18 +740,29 @@ void update_colhdr(int column) {
 		       snprintf(coldesc,32,"@%s",colset[column].acct->name);
 		       break; }
 	case user: {
-		       //snprintf(coldesc,32,"#%d's tweets",colset[column].userid);
+		       char uname[16];
+		       if (colset[column].customtype != NULL) strncpy(uname,colset[column].customtype,15); else {
+			   int r = get_username(colset[column].userid,uname,15);
+			   snprintf(coldesc,32,"@%s's tweets",(r >= 0 ? uname : NULL));
+		       }
 		       break; }
 	case mentions: {
-			   //snprintf(coldesc,32,"@%s's mentions",colset[column].acct->name);
-
+			   char uname[16];
+			   if (colset[column].customtype != NULL) strncpy(uname,colset[column].customtype,15); else {
+			       int r= get_username(colset[column].userid,uname,15);
+			       snprintf(coldesc,32,"@%s's mentions",(r >=0 ? uname : NULL));
+			   }
 			   break; }
 	case direct_messages: {
 				  break; }
 	case search: {
 			 break; }
-
     }
+
+    wprintw(newhdr,"%s",coldesc);
+    touchwin(colhdrs);
+    wrefresh(newhdr);
+    delwin(newhdr);
 }
 
 void draw_column_limit(int column, int scrollback, struct btree* timeline, int topline, int lines) {

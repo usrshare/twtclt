@@ -46,6 +46,9 @@ int load_global_timeline(struct btree* timeline, enum timelinetype tt, uint64_t 
 uint64_t load_tweet(struct t_account* acct, uint64_t tweetid);
 uint64_t load_user(struct t_account* acct, uint64_t userid, char* username);
 
+struct t_tweet* get_tweet(struct t_account* acct, uint64_t tweetid);
+struct t_user* get_user(struct t_account* acct, uint64_t userid, char* username);
+
 typedef void (*stream_cb) (uint64_t id, void* ctx);
 
 int startstreaming(struct btree* timeline, struct t_account* acct, enum timelinetype tt, stream_cb cb, void* cbctx);
