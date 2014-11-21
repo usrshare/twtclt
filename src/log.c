@@ -15,7 +15,7 @@ int cursesused = 0;
 int lprintf(const char *fmt, ...)
 {
     if (logfile == NULL) {
-	logfile = cfopen("twtclt.log","a");
+	logfile = cfopen("twtclt.log","w");
 	time_t ct = time(NULL);
 	fprintf(logfile,"--twtclt started on %s\n",ctime(&ct));
     }

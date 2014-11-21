@@ -116,7 +116,7 @@ char* parse_tweet_entities(struct t_tweet* tweet) {
 		charents++;
 		if (charents == 1) curent = addent = ient; else if (charents >= 2) curent = addent = NULL; //no support for multiple entities.
 	    }
-	    if (ient->index_e == i) {
+	    if ( (ient->index_e == i) || (len == 0) ) {
 		charents--;
 		if (charents == 0) curent = addent = NULL;
 	    }
@@ -141,7 +141,7 @@ char* parse_tweet_entities(struct t_tweet* tweet) {
 		case media:
 		    append1 = ""; append2 = addent->text; break;
 		default:
-		    append1 = " путин "; append2 = " хуйло "; break;
+		    append1 = " error "; append2 = " error "; break;
 	    }
 
 	    text = strrecat(text,append1); text = strrecat(text, append2);

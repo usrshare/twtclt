@@ -47,32 +47,33 @@ struct t_tweet* tht_search(uint64_t id){
 
 int urt_insert(char* screen_name, uint64_t id, enum collision_behavior cbeh){
 
+    char* nsn = strdup(screen_name);
+
     uint64_t* uid = malloc(sizeof(uint64_t));
     *uid = id;
 
-    int r = ht_insert_a(urefht,screen_name,uid);
+    int r = ht_insert_a(urefht,nsn,uid);
 
     if (r == 2) {
 
-	uint64_t* old = urt_search_ptr(screen_name);
+	uint64_t* old = urt_search_ptr(nsn);
 
 	switch(cbeh) {
 	    case no_replace:
-		free(old);
+		free(nsn);
 		return 2;
 		break;
 	    case update:
 	    case replace:
-		r = urt_delete(screen_name);
-		if (r != 0) {free(old); return r;}
-		free(old);
-		r = ht_insert_a(urefht,screen_name,uid);
-		if (r != 0) {free(old); return r;}
+		r = urt_delete(nsn);
+		if (r != 0) {free(nsn); return r;}
+		r = ht_insert_a(urefht,nsn,uid);
+		if (r != 0) {free(nsn); return r;}
 		break;
 	}
     }
 
-    if (r != 0) {free(uid); return r;}
+    if (r != 0) {free(uid); free(nsn); return r;}
     return 0;
 
 }
