@@ -87,7 +87,7 @@ struct tweetbox* pad_search(uint64_t id){
     return pad_search_ind(id,0);
 }
 
-//---
+//--- scrollto functions. scroll to row or tweet IDs.
 
 struct scrollto_ctx {
     int topline;
@@ -98,7 +98,6 @@ struct scrollto_ctx {
     int res_tl;
     int res_ln;
 };
-
 void scrollto_btcb(uint64_t id, void* ctx) {
     struct scrollto_ctx* sts = (struct scrollto_ctx*) ctx;
 
@@ -120,7 +119,6 @@ void scrollto_btcb(uint64_t id, void* ctx) {
 
     return;
 }
-
 int scrollto (int col, int row) {
     struct scrollto_ctx sts = {.topline = 0, .lines = 0, .rows = 0, .maxrow = row, .twtid = 0, .res_tl = -1, .res_ln = 0};
 
@@ -130,7 +128,6 @@ int scrollto (int col, int row) {
     if (sts.topline - colset[col].scrollback + sts.lines > COLHEIGHT) colset[col].scrollback = sts.topline + sts.lines - COLHEIGHT;
     return (sts.rows - 1);
 }
-
 int scrolltotwt (int col, uint64_t twtid) {
     struct scrollto_ctx sts = {.topline = 0, .lines = 0, .rows = 0, .maxrow = -1, .twtid = twtid, .res_tl = -1, .res_ln = 0};
 
@@ -146,6 +143,18 @@ int scrolltotwt (int col, uint64_t twtid) {
 
 #define min(x,y) ( (x) < (y) ? (x) : (y) )
 
+int draw_column_headers() {
+    for (int i=leftmostcol; i < min(leftmostcol + visiblecolumns,MAXCOLUMNS); i++) {
+
+	if (colset[i].enabled) {
+
+	    draw_column(i,colset[i].scrollback,columns[i]);
+	    update_unread(i);
+	}
+    }
+
+}
+
 int draw_all_columns() {
 
     for (int i=leftmostcol; i < min(leftmostcol + visiblecolumns,MAXCOLUMNS); i++) {
@@ -153,7 +162,7 @@ int draw_all_columns() {
 	if (colset[i].enabled) {
 
 	    draw_column(i,colset[i].scrollback,columns[i]);
-	    update_colhdr(i);
+	    update_unread(i);
 	}
     }
 
@@ -622,7 +631,8 @@ pthread_t* init_ui(){
     wrefresh(titlebar);
 
     colhdrs = newwin(1,COLS,1,0);
-    wbkgd(colarea,COLOR_PAIR(9));
+    wbkgd(colhdrs,COLOR_PAIR(9));
+    draw_column_headers();
 
     colarea = newwin(COLHEIGHT,COLS,2,0);
     wbkgdset(colarea,ACS_CKBOARD | COLOR_PAIR(1));
@@ -749,36 +759,36 @@ int get_unread_number(int column) {
     return ctx.unread_tweets;
 }
 
-void update_colhdr(int column) {
+void draw_coldesc(int column) {
 
-    WINDOW* newhdr = derwin(colhdrs, 1, colwidth, 0, (column - leftmostcol) * colwidth);
+    int length = colwidth - 8;
+
+    WINDOW* newhdr = derwin(colhdrs, 1, colwidth - 8, 0, (column - leftmostcol) * colwidth);
 
     werase(newhdr);
-    int unread = get_unread_number(column);
-
-    char coldesc[32];
+    char coldesc[length+1];
 
     switch(colset[column].tt) {
 
 	case home: {
-		       snprintf(coldesc,32,"@%s",colset[column].acct->name);
+		       snprintf(coldesc,length,"@%s",colset[column].acct->name);
 		       break; }
 	case user: {
 		       char uname[16];
 		       if (colset[column].customtype != NULL) strncpy(uname,colset[column].customtype,15); else {
 			   int r = get_username(colset[column].userid,uname,15);
-			   snprintf(coldesc,32,"@%s's tweets",(r >= 0 ? uname : NULL));
+			   snprintf(coldesc,length,"@%s's tweets",(r >= 0 ? uname : NULL));
 		       }
 		       break; }
 	case mentions: {
 			   char uname[16];
 			   if (colset[column].customtype != NULL) strncpy(uname,colset[column].customtype,15); else {
 			       int r= get_username(colset[column].userid,uname,15);
-			       snprintf(coldesc,32,"@%s's mentions",(r >=0 ? uname : NULL));
+			       snprintf(coldesc,length,"@%s's mentions",(r >=0 ? uname : NULL));
 			   }
 			   break; }
 	case direct_messages: {
-			snprintf(coldesc,32,"@%s's DMs",colset[column].acct->name);
+			snprintf(coldesc,length,"@%s's DMs",colset[column].acct->name);
 				  break; }
 	case search: {
 			 snprintf(coldesc,32,"Search: %s",colset[column].customtype);
@@ -787,25 +797,36 @@ void update_colhdr(int column) {
     
     wprintw(newhdr,"%s",coldesc);
 
-    if (unread) {
-
-	char unreadstr[16];
-	snprintf(unreadstr,15,"%d",unread);
-
-	wmove(newhdr,0,colwidth - strlen(unreadstr)-2-1);
-
-	wattron(newhdr,COLOR_PAIR(12));
-	waddstr(newhdr,"▄");
-	wattron(newhdr,COLOR_PAIR(13));
-	waddstr(newhdr,unreadstr);
-	wattron(newhdr,COLOR_PAIR(12));
-	waddstr(newhdr,"▀");
-	wattroff(newhdr,COLOR_PAIR(12));
-    }
-
     touchwin(colhdrs);
     wrefresh(newhdr);
     delwin(newhdr);
+
+}
+
+void update_unread(int column) {
+
+    WINDOW* unwin = derwin(colhdrs, 1, 8, 0, (column - leftmostcol) * colwidth + (colwidth - 8));
+
+    werase(unwin);
+    int unread = get_unread_number(column);
+
+    if (unread) {
+	char unreadstr[7];
+	snprintf(unreadstr,6,"%d",unread);
+
+	wmove(unwin,0,8 - strlen(unreadstr)-2-1);
+
+	wattron(unwin,COLOR_PAIR(12));
+	waddstr(unwin,"▄");
+	wattron(unwin,COLOR_PAIR(13));
+	waddstr(unwin,unreadstr);
+	wattron(unwin,COLOR_PAIR(12));
+	waddstr(unwin,"▀");
+	wattroff(unwin,COLOR_PAIR(12));
+    }
+    touchwin(colhdrs);
+    wrefresh(unwin);
+    delwin(unwin);
 }
 
 void draw_column_limit(int column, int scrollback, struct btree* timeline, int topline, int lines) {
