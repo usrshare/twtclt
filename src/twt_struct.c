@@ -64,12 +64,12 @@ int urt_insert(char* screen_name, uint64_t id, enum collision_behavior cbeh){
 		return 2;
 		break;
 	    case update:
-		if (*old == id) { free(nsn); break; }
+		if (*old == id) { free(uid); free(nsn); return 0; }
 	    case replace:
 		r = urt_delete(nsn);
-		if (r != 0) {free(nsn); return r;}
+		if (r != 0) {free(uid); free(nsn); return 2;}
 		r = ht_insert_a(urefht,nsn,uid);
-		if (r != 0) {free(nsn); return r;}
+		if (r != 0) {free(uid); free(nsn); return 2;}
 		break;
 	}
     }
