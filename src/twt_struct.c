@@ -64,6 +64,7 @@ int urt_insert(char* screen_name, uint64_t id, enum collision_behavior cbeh){
 		return 2;
 		break;
 	    case update:
+		if (*old == id) { free(nsn); break; }
 	    case replace:
 		r = urt_delete(nsn);
 		if (r != 0) {free(nsn); return r;}

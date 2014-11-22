@@ -275,7 +275,7 @@ uint64_t parse_json_user(json_object* user, int perspectival) {
 
     int r = uht_insert(&nu,no_replace); if (r != 0) lprintf("uht_insert user returned %d\n",r);
 
-    r = urt_insert(nu.screen_name, nu.id, replace);
+    r = urt_insert(nu.screen_name, nu.id, update);
     if (r != 0) lprintf("urt_insert screen name returned %d\n",r);
 
     return nu.id;

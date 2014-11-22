@@ -35,6 +35,7 @@ struct drawcol_ctx{
 struct t_timelineset {
     int enabled;
     uint64_t curtwtid; //id of selected tweet
+    uint64_t lastread; //id of last read (visible on screen) tweet.
     struct t_account* acct;
     enum timelinetype tt;
     uint64_t userid;
@@ -137,6 +138,7 @@ int scrolltotwt (int col, uint64_t twtid) {
 
     if (colset[col].scrollback > sts.topline) colset[col].scrollback = sts.topline;
     if (sts.topline - colset[col].scrollback + sts.lines > COLHEIGHT) colset[col].scrollback = sts.topline + sts.lines - COLHEIGHT;
+    if (twtid > colset[col].lastread) colset[col].lastread = twtid;
     return (sts.rows - 1);
 }
 
@@ -151,6 +153,7 @@ int draw_all_columns() {
 	if (colset[i].enabled) {
 
 	    draw_column(i,colset[i].scrollback,columns[i]);
+	    update_colhdr(i);
 	}
     }
 
@@ -460,7 +463,7 @@ void* uithreadfunc(void* param) {
 	    case KEY_LEFT:
 		// Select next tweet, TODO make scrolling follow selection
 		if (cur_col > 0) cur_col--;
-		scrolltotwt(cur_col,colset[cur_col].curtwtid); 	
+		scrolltotwt(cur_col,colset[cur_col].curtwtid);
 		draw_all_columns();
 		break;
 	    case KEY_RIGHT:
@@ -618,7 +621,7 @@ pthread_t* init_ui(){
 
     wrefresh(titlebar);
 
-    colhdrs = newwin(1,COLS,2,0);
+    colhdrs = newwin(1,COLS,1,0);
     wbkgd(colarea,COLOR_PAIR(9));
 
     colarea = newwin(COLHEIGHT,COLS,2,0);
@@ -701,8 +704,9 @@ void drawcol_cb(uint64_t id, void* ctx) {
 	int topy = ( (dc->curline - dc->scrollback > 0) ? (dc->curline - dc->scrollback) : 0);
 	int boty = ( (dc->curline - dc->scrollback + lines <= COLHEIGHT+1) ? (dc->curline - dc->scrollback + lines) : COLHEIGHT);
 
-	if ( (dc->lines == 0) || (boty >= dc->topline) || (topy <= dc->topline + dc->lines))
+	if ( (dc->lines == 0) || (boty >= dc->topline) || (topy <= dc->topline + dc->lines)) {
 	    pnoutrefresh(tp,skipy,0,topy+2,( (dc->column - leftmostcol)  * colwidth),boty+1,(dc->column - leftmostcol +1) *colwidth - 1);
+	}
 
     }
 
@@ -727,9 +731,30 @@ int get_username(uint64_t uid, char* out, size_t maxsz) {
     userdel(u); return strlen(out);
 }
 
+struct unread_ctx {
+    uint64_t min_id;
+    int unread_tweets;
+};
+
+void unread_cb(uint64_t id, void* param) {
+    struct unread_ctx* ctx = (struct unread_ctx*) param;
+    if (id > ctx->min_id) (ctx->unread_tweets)++;
+}
+
+int get_unread_number(int column) {
+    
+    struct unread_ctx ctx = {.min_id = colset[column].lastread,.unread_tweets=0};
+    bt_read(columns[column],unread_cb,&ctx,desc);
+
+    return ctx.unread_tweets;
+}
+
 void update_colhdr(int column) {
 
     WINDOW* newhdr = derwin(colhdrs, 1, colwidth, 0, (column - leftmostcol) * colwidth);
+
+    werase(newhdr);
+    int unread = get_unread_number(column);
 
     char coldesc[32];
 
@@ -756,10 +781,28 @@ void update_colhdr(int column) {
 			snprintf(coldesc,32,"@%s's DMs",colset[column].acct->name);
 				  break; }
 	case search: {
+			 snprintf(coldesc,32,"Search: %s",colset[column].customtype);
 			 break; }
     }
-
+    
     wprintw(newhdr,"%s",coldesc);
+
+    if (unread) {
+
+	char unreadstr[16];
+	snprintf(unreadstr,15,"%d",unread);
+
+	wmove(newhdr,0,colwidth - strlen(unreadstr)-2-1);
+
+	wattron(newhdr,COLOR_PAIR(12));
+	waddstr(newhdr,"▄");
+	wattron(newhdr,COLOR_PAIR(13));
+	waddstr(newhdr,unreadstr);
+	wattron(newhdr,COLOR_PAIR(12));
+	waddstr(newhdr,"▀");
+	wattroff(newhdr,COLOR_PAIR(12));
+    }
+
     touchwin(colhdrs);
     wrefresh(newhdr);
     delwin(newhdr);

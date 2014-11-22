@@ -139,7 +139,7 @@ int ht_delete_ind(struct hashtable* ht, uint64_t key, int index) {
     if (i->key == key) {
 	if (n == index) {free(i); ht->items[h] = NULL; return HT_SUCCESS;} else n++;}
 
-    while (i->next != NULL) {
+    while ((i != NULL) && (i->next != NULL)) {
 	if ((i->next->key == key)) {
 	    if (n == index) {
 		if (i->next->next != NULL) {
@@ -164,7 +164,7 @@ int ht_delete_ind_a(struct hashtable* ht, char* altkey, int index) {
     if (strcmp(i->altkey, altkey) == 0) {
 	if (n == index) {free(i); ht->items[h] = NULL; return HT_SUCCESS;} else n++;}
 
-    while (i->next != NULL) {
+    while ((i != NULL) && (i->next != NULL)) {
 	if (strcmp(i->next->altkey, altkey) == 0) {
 	    if (n == index) {
 		if (i->next->next != NULL) {
