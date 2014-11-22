@@ -18,6 +18,7 @@ add_executable (twtclt
 		src/btree.c
 		src/stringex.c
 		src/twt_oauth.c
+		src/twt_json.c
 		src/twt_struct.c
 		src/twt_time.c
 		src/config.c

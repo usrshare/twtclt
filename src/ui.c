@@ -19,7 +19,6 @@
 char* okcanc[] = {"OK","Cancel"};
 char* yesno[] = {"Yes","No"};
 
-
 uint8_t colwidth = 40; //default width, may be larger
 uint8_t visiblecolumns = 1; //how many columns are visible side by side
 uint8_t leftmostcol = 0; //leftmost visible column
@@ -754,6 +753,7 @@ void update_colhdr(int column) {
 			   }
 			   break; }
 	case direct_messages: {
+			snprintf(coldesc,32,"@%s's DMs",colset[column].acct->name);
 				  break; }
 	case search: {
 			 break; }
@@ -902,11 +902,3 @@ void draw_tweet(struct t_tweet* tweet) {
     delwin(tp);
 }
 
-void* windowthread(void* param){
-    printf("Called windowthread with param %p\n",param);
-    return NULL;
-}
-
-int draw_cards() {
-    return 1;
-}

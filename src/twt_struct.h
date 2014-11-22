@@ -20,7 +20,6 @@ enum timelinetype {
     direct_messages,
     search,
 };
-
 struct t_entity {
     enum entitytype type; //entity type
     uint8_t index_s,index_e; //indices.
@@ -30,7 +29,8 @@ struct t_entity {
     uint64_t id; //ID for mentions and media
 };
 struct t_timeline {
-    struct t_timeline* next;
+    struct t_account* acct;
+    struct btree* bt;
 };
 struct t_contributor {
     uint64_t id;

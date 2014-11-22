@@ -7,28 +7,22 @@
 #include "globals.h"
 #include "hashtable.h"
 #include "btree.h"
-#include <json-c/json.h>
 #include "twt_struct.h"
+#include "twt_json.h"
 
 #ifndef _TWT_H_
 #define _TWT_H_
 
-#define s_eq(x,y) (strcmp(x,y) == 0)
 
 #define MAXTWEETLEN 140 //this header line © sabajo @ #geekissues @ irc.efnet.org  
 
 int initStructures();
 
 struct t_account* newAccount();
-
 void destroyAccount(struct t_account* acct);
 
 // oAuth authorization process here
 int inithashtables();
-
-uint64_t parse_json_user(struct t_account* acct, json_object* user, int perspectival);
-
-uint64_t parse_json_tweet(struct t_account* acct, json_object* tweet, int perspectival);
 
 char* parse_tweet_entities(struct t_tweet* tweet);
 
@@ -49,7 +43,6 @@ uint64_t load_user(struct t_account* acct, uint64_t userid, char* username);
 struct t_tweet* get_tweet(struct t_account* acct, uint64_t tweetid);
 struct t_user* get_user(struct t_account* acct, uint64_t userid, char* username);
 
-typedef void (*stream_cb) (uint64_t id, void* ctx);
 
 int startstreaming(struct btree* timeline, struct t_account* acct, enum timelinetype tt, stream_cb cb, void* cbctx);
 int stopstreaming();
