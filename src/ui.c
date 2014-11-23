@@ -12,6 +12,8 @@
 #include "stringex.h"
 #include "utf8.h"
 
+#include "ui_windows.h"
+
 #define MAXCOLUMNS 32
 
 #define COLHEIGHT (LINES-3)
@@ -154,7 +156,6 @@ int draw_column_headers() {
     }
 
 }
-
 int draw_all_columns() {
 
     for (int i=leftmostcol; i < min(leftmostcol + visiblecolumns,MAXCOLUMNS); i++) {
@@ -197,167 +198,6 @@ int reload_all_columns() {
     return 0;
 }
 
-enum msgboxclass {
-    msg_info, //blue borders
-    msg_warning, //yellow borders
-    msg_error, //red borders
-    msg_critical, //red borders, darken background?
-};
-
-int inputbox(const char* message, char* textfield, size_t textsize) {
-
-    int msgwidth, msgheight, textw;
-
-    //char input[textsize+1];
-
-    //FIELD* field[4];
-
-    utf8_text_size(message,&msgwidth,&msgheight);
-}
-
-int msgbox(char* message, enum msgboxclass class, int buttons_n, char** btntext) {
-
-    //TODO show and handle buttons.
-
-    int textwidth, textheight, btnwidth = (buttons_n - 1);
-
-    utf8_text_size(message,&textwidth,&textheight);
-
-    char* cutmsg = NULL;
-
-    if ((textwidth) > (COLS - 8)) {
-
-	cutmsg = malloc(strlen(message) + 128);
-
-	int r = utf8_wrap_text(message,cutmsg,strlen(message) + 128,(COLS-8));
-
-	utf8_text_size(cutmsg,&textwidth,&textheight);
-
-    }
-
-    char* dispmsg = (cutmsg ? cutmsg : message);
-
-
-    if (buttons_n > 0)
-	for (int i=0; i<buttons_n; i++) btnwidth += 1 + strlen(btntext[i]) + 1; //[button]
-
-    int maxwidth = textwidth+4;
-
-    int maxheight = textheight+4;
-
-    if (btnwidth >= textwidth) maxwidth = btnwidth+4;
-
-    int topline = (LINES-maxheight)/2;
-    WINDOW* msgwindow = newwin(maxheight,maxwidth,topline, (COLS-maxwidth)/2);
-
-    switch (class) {
-	case msg_info:
-	    wattron(msgwindow,COLOR_PAIR(10));
-	    box(msgwindow,0,0);
-	    wattroff(msgwindow,COLOR_PAIR(10));
-	    break;
-	case msg_warning:
-	    wattron(msgwindow,COLOR_PAIR(11));
-	    box(msgwindow,0,0);
-	    wattroff(msgwindow,COLOR_PAIR(11));
-	    break;
-	case msg_error:
-	    wattron(msgwindow,COLOR_PAIR(12));
-	    box(msgwindow,0,0);
-	    wattroff(msgwindow,COLOR_PAIR(12));
-	    break;
-	case msg_critical:
-	    wattron(msgwindow,COLOR_PAIR(13));
-	    box(msgwindow,0,0);
-	    wattroff(msgwindow,COLOR_PAIR(13));
-	    break;
-    }
-
-    WINDOW* textwin = derwin(msgwindow,maxheight-4,maxwidth-4,2,2);
-
-    waddstr(textwin,message);
-
-    touchwin(msgwindow);
-
-    WINDOW* buttons[buttons_n]; //C99 VLAs FTW!
-
-    if (buttons_n != 0) {
-
-	int btnwidth = (buttons_n - 1); //1 space between buttons
-
-	for (int i=0; i<buttons_n; i++) {
-	    btnwidth += 1 + strlen(btntext[i]) + 1; //[button]
-	}
-
-	// int btnleft = (maxwidth - btnwidth) / 2; //align center
-	int btnleft = (maxwidth - btnwidth); //align right
-
-	int curbutleft = btnleft - 2;
-
-	for (int i=0; i<buttons_n; i++) {
-
-	    buttons[i] = derwin(msgwindow,1,strlen(btntext[i])+2, maxheight-2, curbutleft);
-	    curbutleft+=(strlen(btntext[i])+3);
-	}
-    }
-
-    int selectloop = 1;
-
-    int selbtn = 0;
-
-    while (selectloop) {
-
-	for (int i=0; i<buttons_n; i++) {
-	    if (selbtn == i) wattron(buttons[i],A_REVERSE);
-	    mvwprintw(buttons[i],0,0,"[%s]",btntext[i]);
-	    if (selbtn == i) wattroff(buttons[i],A_REVERSE);
-	    touchwin(msgwindow);
-	}
-
-	wrefresh(msgwindow);
-
-	wmove(inputbar,0,0);
-	int k = wgetch(inputbar); 
-
-	switch(k) {
-	    case 'h':
-	    case KEY_LEFT:
-		selbtn = (selbtn -1) % buttons_n; if (selbtn < 0) selbtn = (buttons_n -1);
-		break;
-	    case 'l':
-	    case '\t':
-	    case KEY_RIGHT:
-		selbtn = (selbtn +1) % buttons_n;
-		break;
-	    case 32:
-	    case KEY_ENTER:
-	    case '\r':
-	    case '\n':
-		selectloop=0;
-		break;
-	}
-
-    }
-
-    for (int i=0; i<buttons_n; i++) {
-
-	delwin(buttons[i]);
-
-    }
-
-    delwin(textwin);
-    delwin(msgwindow);
-
-    wtouchln(colarea,(LINES-maxheight)/2-2,maxheight,1);
-    wrefresh(colarea);
-
-    if (cutmsg) free (cutmsg);
-
-    redraw_lines(topline,maxheight);
-
-    return selbtn;
-}
-
 struct row_tweet_ctx {
     uint64_t id;
     int cur_ind;
@@ -367,6 +207,8 @@ struct row_tweet_ctx {
     uint64_t res_id;
     int diff_less;
 };
+
+// row_tweet functions return a tweet ID from row number or shift from the currently selected tweet in the column.
 
 void row_tweet_cb(uint64_t id, void* param) {
     struct row_tweet_ctx* ctx = (struct row_tweet_ctx*) param;
@@ -379,7 +221,6 @@ void row_tweet_cb(uint64_t id, void* param) {
 
     ctx->cur_ind++;
 }
-
 void row_tweet_shift_cb(uint64_t id, void* param) {
     struct row_tweet_ctx* ctx = (struct row_tweet_ctx*) param;
 
@@ -390,7 +231,6 @@ void row_tweet_shift_cb(uint64_t id, void* param) {
     ctx->cur_id = id;
 
 }
-
 
 uint64_t row_tweet_shift(int column, uint64_t id, int indexdiff) {
 
@@ -411,8 +251,6 @@ uint64_t row_tweet_shift(int column, uint64_t id, int indexdiff) {
     lprintf("row_tweet_shift %d on %" PRIu64 " returns %" PRIu64 "\n",indexdiff,id,res);
     return res;
 }
-
-
 uint64_t row_tweet_index(int column, uint64_t id, int index) {
 
     //either returns the tweet id, if id is zero, or index, if index is -1.
@@ -426,6 +264,8 @@ uint64_t row_tweet_index(int column, uint64_t id, int index) {
     if (index == -1) return ctx.index;
     if (id == 0) return ctx.id;
 }
+
+// row_tweet end
 
 struct uicbctx {
     int colnum;
@@ -631,7 +471,7 @@ pthread_t* init_ui(){
     wrefresh(titlebar);
 
     colhdrs = newwin(1,COLS,1,0);
-    wbkgd(colhdrs,COLOR_PAIR(9));
+    wbkgdset(colhdrs,COLOR_PAIR(9));
     draw_column_headers();
 
     colarea = newwin(COLHEIGHT,COLS,2,0);
@@ -735,6 +575,8 @@ void draw_headers() {
 
 }
 
+// column headers draw functions
+
 int get_username(uint64_t uid, char* out, size_t maxsz) {
     struct t_user* u = get_user(NULL,uid,NULL);
     if (u == NULL) return 0; else strncpy(out,u->screen_name,maxsz);
@@ -745,12 +587,10 @@ struct unread_ctx {
     uint64_t min_id;
     int unread_tweets;
 };
-
 void unread_cb(uint64_t id, void* param) {
     struct unread_ctx* ctx = (struct unread_ctx*) param;
     if (id > ctx->min_id) (ctx->unread_tweets)++;
 }
-
 int get_unread_number(int column) {
     
     struct unread_ctx ctx = {.min_id = colset[column].lastread,.unread_tweets=0};
@@ -802,7 +642,6 @@ void draw_coldesc(int column) {
     delwin(newhdr);
 
 }
-
 void update_unread(int column) {
 
     WINDOW* unwin = derwin(colhdrs, 1, 8, 0, (column - leftmostcol) * colwidth + (colwidth - 8));
@@ -829,6 +668,8 @@ void update_unread(int column) {
     delwin(unwin);
 }
 
+// draw column functions
+
 void draw_column_limit(int column, int scrollback, struct btree* timeline, int topline, int lines) {
     //btree should contain tweet IDs.
 
@@ -841,7 +682,6 @@ void draw_column_limit(int column, int scrollback, struct btree* timeline, int t
 
     doupdate();
 } 
-
 void draw_column2(int column, int scrollback, struct btree* timeline, int do_update) {
     //btree should contain tweet IDs.
 
@@ -854,13 +694,10 @@ void draw_column2(int column, int scrollback, struct btree* timeline, int do_upd
 
     if (do_update) doupdate();
 } 
-
 void draw_column(int column, int scrollback, struct btree* timeline) {
     //btree should contain tweet IDs.
     draw_column2(column,scrollback,timeline,1);
 } 
-
-
 
 
 WINDOW* tweetpad(struct t_tweet* tweet, int* linecount, int selected) {
@@ -951,18 +788,5 @@ WINDOW* tweetpad(struct t_tweet* tweet, int* linecount, int selected) {
     delwin(textpad);
 
     return tp;
-}
-
-void draw_tweet(struct t_tweet* tweet) {
-
-    int lines;
-
-    WINDOW* tp = tweetpad(tweet,&lines,0);
-
-    prefresh(tp,0,0,0,0,lines,colwidth);
-
-    wclear(tp);
-
-    delwin(tp);
 }
 

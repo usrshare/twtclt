@@ -22,19 +22,7 @@ struct tweetbox* pad_search_ind(uint64_t id, int index);
 struct tweetbox* pad_search(uint64_t id);
 
 uint64_t fullid(uint8_t acct, uint64_t id);
-
-
-WINDOW* titlebar;
-WINDOW* statusbar;
-WINDOW* inputbar;
-
-WINDOW* colhdrs;
-
-WINDOW* colarea;
-
 uint8_t colcount;
-
-WINDOW* colpads;
 
 uint8_t cur_col;
 uint16_t curtwtid;

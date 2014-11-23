@@ -24,6 +24,7 @@ add_executable (twtclt
 		src/config.c
 		src/log.c
 		src/ui.c
+		src/ui_windows.c
 		src/utf8.c)
 
 add_library(libmojibake STATIC IMPORTED)
