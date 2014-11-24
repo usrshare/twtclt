@@ -395,6 +395,61 @@ void* uithreadfunc(void* param) {
 
 }
 
+void load_columns(FILE* file) {
+
+    int i=0;
+
+    char colsetline[256];
+
+    while ( (i < MAXCOLUMNS) && (!feof(file)) ) {
+
+/*int save_accounts() {
+    FILE* db = cfopen("accounts.db","w"); if ((db == NULL) && (errno != ENOENT)) { perror("fopen"); return 1;}
+    for (int i=0; i < acct_n; i++)
+	fprintf(db,"%" PRId64 " %s %s %s %d %d\n",acctlist[i]->userid,acctlist[i]->name,acctlist[i]->key->tkey,acctlist[i]->key->tsct,acctlist[i]->show_in_timeline,acctlist[i]->auth);
+
+    fflush(db);
+    fclose(db);
+    return 0;
+}*/
+/*	int r = fscanf(db,"%d %16s %128s %128s %hhd %d\n",&userid,name,tkey,tsct,&show_in_timeline,&auth);
+	if (r != 6) { lprintf("%d fields returned instead of 6\n",r); return 1;}
+	struct t_account* na = newAccount();
+	na->userid = userid; na->auth = auth;
+	na->show_in_timeline = show_in_timeline;
+
+	strncpy(na->name,name,16);
+	strncpy(na->key->tkey,tkey,128);
+	strncpy(na->key->tsct,tsct,128);
+	add_acct(na);
+ */
+    fclose(file);
+    return 0;
+    }
+
+}
+
+void init_columns() {
+
+    FILE* colfile = cfopen("columns.cfg","r");
+
+    if (colfile != NULL) load_columns(colfile); else {
+
+    columns[0] = bt_create();
+    colset[0].enabled = 1;
+    colset[0].acct = acctlist[0];
+    colset[0].tt = home;
+    colset[0].customtype = NULL;
+
+    columns[1] = bt_create();
+    colset[1].enabled = 1;
+    colset[1].acct = acctlist[0];
+    colset[1].tt = mentions;
+    colset[1].customtype = NULL;
+
+    }
+}
+
 pthread_t* init_ui(){
     cursesused = 1;
     initscr();
@@ -415,17 +470,7 @@ pthread_t* init_ui(){
 	colset[i].customtype = NULL;
     }
 
-    columns[0] = bt_create();
-    colset[0].enabled = 1;
-    colset[0].acct = acctlist[0];
-    colset[0].tt = home;
-    colset[0].customtype = NULL;
-
-    columns[1] = bt_create();
-    colset[1].enabled = 1;
-    colset[1].acct = acctlist[0];
-    colset[1].tt = mentions;
-    colset[1].customtype = NULL;
+    init_columns();
 
     start_color();	
     cbreak();
