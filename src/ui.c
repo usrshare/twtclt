@@ -357,6 +357,13 @@ void* uithreadfunc(void* param) {
 			 (colset[cur_col].scrollback)+=COLHEIGHT;
 			 draw_all_columns();
 			 break;
+	    case 'i': {
+			  // Load timeline. Tweets will be added.
+			  char inp[80];
+			  int r = inputbox("Test?",msg_info,inp,80);
+			  msgbox(inp,msg_error,0,NULL);
+			  draw_all_columns();
+			  break; }
 	    case 'm': {
 			  // Load timeline. Tweets will be added.
 			  int r = msgbox("Lol.",msg_info,2,okcanc);

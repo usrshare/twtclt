@@ -1,15 +1,89 @@
 #include "ui_windows.h"
+#include <string.h>
+#include "utf8.h"
 
-
-int inputbox(const char* message, char* textfield, size_t textsize) {
+int inputbox(const char* message, enum msgboxclass class, char* textfield, size_t textsize) {
 
     int msgwidth, msgheight, textw;
 
-    //char input[textsize+1];
-
-    //FIELD* field[4];
-
     utf8_text_size(message,&msgwidth,&msgheight);
+
+    char* cutmsg = NULL;
+
+    if ((msgwidth) > (COLS - 8)) {
+
+	cutmsg = malloc(strlen(message) + 128);
+
+	int r = utf8_wrap_text(message,cutmsg,strlen(message) + 128,(COLS-8));
+
+	utf8_text_size(cutmsg,&msgwidth,&msgheight);
+
+    }
+
+    char* dispmsg = (cutmsg ? cutmsg : message);
+
+    int textinpsize = textsize+2;
+
+    int maxwidth = msgwidth+4;
+
+    int maxheight = msgheight+4;
+
+    if (textinpsize >= msgwidth) maxwidth = textinpsize+4;
+
+    int topline = (LINES-maxheight)/2;
+    WINDOW* msgwindow = newwin(maxheight,maxwidth,topline, (COLS-maxwidth)/2);
+
+    switch (class) {
+	case msg_info:
+	    wattron(msgwindow,COLOR_PAIR(10));
+	    box(msgwindow,0,0);
+	    wattroff(msgwindow,COLOR_PAIR(10));
+	    break;
+	case msg_warning:
+	    wattron(msgwindow,COLOR_PAIR(11));
+	    box(msgwindow,0,0);
+	    wattroff(msgwindow,COLOR_PAIR(11));
+	    break;
+	case msg_error:
+	    wattron(msgwindow,COLOR_PAIR(12));
+	    box(msgwindow,0,0);
+	    wattroff(msgwindow,COLOR_PAIR(12));
+	    break;
+	case msg_critical:
+	    wattron(msgwindow,COLOR_PAIR(13));
+	    box(msgwindow,0,0);
+	    wattroff(msgwindow,COLOR_PAIR(13));
+	    break;
+    }
+
+    WINDOW* textwin = derwin(msgwindow,maxheight-4,maxwidth-4,2,2);
+
+    waddstr(textwin,message);
+
+    touchwin(msgwindow);
+    wrefresh(msgwindow);
+
+    WINDOW* textfw = derwin(msgwindow,1,textinpsize,maxheight-2,((maxwidth-textinpsize)/2));
+
+    mvwaddstr(textfw,0,0,"[");
+    mvwaddstr(textfw,0,textinpsize-1,"]");
+    wmove(textfw,0,1);
+
+    echo();
+    wgetnstr(textfw,textfield,textsize);
+    noecho();
+
+    delwin(textwin);
+    delwin(msgwindow);
+
+    wtouchln(colarea,(LINES-maxheight)/2-2,maxheight,1);
+    wrefresh(colarea);
+
+    if (cutmsg) free (cutmsg);
+
+    redraw_lines(topline,maxheight);
+
+    return 0;
 }
 
 int msgbox(char* message, enum msgboxclass class, int buttons_n, char** btntext) {

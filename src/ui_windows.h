@@ -18,7 +18,7 @@ WINDOW* colarea; //everything else
 WINDOW* statusbar; //bottom line
 WINDOW* inputbar; //bottom right space
 
-int inputbox(const char* message, char* textfield, size_t textsize);
+int inputbox(const char* message, enum msgboxclass class, char* textfield, size_t textsize);
 int msgbox(char* message, enum msgboxclass class, int buttons_n, char** btntext);
 
 #endif
