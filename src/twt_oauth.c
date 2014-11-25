@@ -118,7 +118,7 @@ int authorize(struct t_account* acct, char** url) {
 
     sprintf(full_url,"%s%s%s",twt_auth,twt_auth2,acct->key->tkey);
 
-    printf("Please visit the URL shown below in your browser and authenticate your Twitter account: \n\n%s\n\n",full_url);
+    //printf("Please visit the URL shown below in your browser and authenticate your Twitter account: \n\n%s\n\n",full_url);
 
     if (url != NULL) *url = strdup(full_url);
 

@@ -43,7 +43,8 @@ int addAccount() {
     r = authorize(myacct,&url);
     if (r != 0) { printf("authorize returned %d\n",r); return 1;}
     int pin = 0;
-    printf("Please navigate to the following URL, authorize your account and type in the PIN given:");
+    printf("Please navigate to the following URL, authorize your account and type in the PIN given:\n%s\n\nEnter PIN here:",url);
+    free(url);
     scanf("%d",&pin);
     r = oauth_verify(myacct,pin);
     if (r != 0) { printf("oauth_verify returned %d\n",r); return 1;}

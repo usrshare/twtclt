@@ -232,6 +232,47 @@ void row_tweet_shift_cb(uint64_t id, void* param) {
 
 }
 
+int ui_addAccount() {
+
+    int r = msgbox("Are you sure you want to create a new account?",msg_info,2,yesno);
+
+    if (r == 1) return 1;
+
+    char oauthkey[8];
+    
+    char baseurl[128];
+    memset(baseurl,'\0',sizeof baseurl);
+    struct t_account *myacct = newAccount(baseurl);
+
+    r = request_token(myacct);
+
+    if (r != 0) { lprintf("request_token returned %d\n",r); return 1;}
+    char* url;
+    r = authorize(myacct,&url);
+   
+    if (r != 0) { lprintf("authorize returned %d\n",r); return 1;}
+    int pin = 0;
+    
+    char navimsg[500];
+
+    snprintf(navimsg,499,"To authenticate your Twitter account, please navigate to the following URL and input your login details: \n%s\n",url);
+
+    msgbox(navimsg,msg_info,0,NULL);
+
+    free(url);
+    
+    inputbox("Please enter the 7-digit key you received:",msg_info,oauthkey,7);
+
+    pin = atoi(oauthkey);
+
+    r = oauth_verify(myacct,pin);
+    if (r != 0) { lprintf("oauth_verify returned %d\n",r); return 1;}
+
+    add_acct(myacct);
+
+    return 0;
+}
+
 uint64_t row_tweet_shift(int column, uint64_t id, int indexdiff) {
 
     //returns the tweet id that's N columns above or below in the column list.2
@@ -431,7 +472,7 @@ void load_columns(FILE* file) {
 	add_acct(na);
  */
     fclose(file);
-    return 0;
+    return;
     }
 
 }
