@@ -42,6 +42,8 @@ void draw_column2(int column, int scrollback, struct btree* timeline,int do_upda
 void draw_column(int column, int scrollback, struct btree* timeline);
 WINDOW* tweetpad(struct t_tweet* tweet, int* linecount, int selected);
 
+void update_unread(int column);
+
 int redraw_lines(int topline, int lines);
 int draw_all_columns();
 

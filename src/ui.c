@@ -763,6 +763,7 @@ WINDOW* tweetpad(struct t_tweet* tweet, int* linecount, int selected) {
     struct t_user* rtu = uht_search(ot->user_id);
 
     char* usn = rtu->screen_name;
+    char* uname = rtu->name;
 
     utf8_wrap_text(text,tweettext,400,colwidth - 2); 
 
@@ -771,28 +772,37 @@ WINDOW* tweetpad(struct t_tweet* tweet, int* linecount, int selected) {
     // -------------------------
     // Tweet content
     // RT by screen name | time
-    // ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
 
     int textlines = countlines(tweettext,400);
 
-    int lines = (tweet->retweeted_status_id ? textlines + 6 : textlines + 4);
+    int lines = (tweet->retweeted_status_id ? textlines + 5 : textlines + 3);
 
     WINDOW* tp = newpad(lines, colwidth);
 
-    wbkgd(tp,(selected ? COLOR_PAIR(8) : COLOR_PAIR(3)));
+    chtype bkgtype = ( selected ? COLOR_PAIR(8) : COLOR_PAIR(3) );
 
-    if (selected) wattron(tp,COLOR_PAIR(8));
+    wbkgd(tp,bkgtype);
+
+    wattron(tp,bkgtype);
 
     wattron(tp,A_BOLD);
-    if (tweet->retweeted_status_id) wattron(tp,COLOR_PAIR(4)); else wattron(tp,COLOR_PAIR(3));
+
+    int specialtw = (tweet->retweeted_status_id);
+
+    if (tweet->retweeted_status_id) wattron(tp,COLOR_PAIR(4));
+
     for (int i=0; i < colwidth; i++) {
-	waddstr(tp,"▀");
+	waddstr(tp, (specialtw ? "█" : "▔") );
     }
     wattroff(tp,A_BOLD);
-    if (tweet->retweeted_status_id) wattroff(tp,COLOR_PAIR(4)); else wattroff(tp,COLOR_PAIR(3));
-    wattron(tp,(selected ? COLOR_PAIR(8) : COLOR_PAIR(3)));
-    mvwaddch(tp,1,1,'@');
-    mvwaddstr(tp,1,2,usn);
+
+    if (tweet->retweeted_status_id) wattroff(tp,COLOR_PAIR(4));
+    wattron(tp,bkgtype);
+    
+    //wattron(tp,A_BOLD);
+    mvwchgat(tp,1,1,colwidth-1,A_BOLD,PAIR_NUMBER(bkgtype),NULL);
+    if (uname) mvwprintw(tp,1,1,"%s",uname); else mvwprintw(tp,1,1,"@%s",usn);
+    //wattroff(tp,A_BOLD);
 
     char reltime[8];
     reltimestr(ot->created_at,reltime);
@@ -809,32 +819,22 @@ WINDOW* tweetpad(struct t_tweet* tweet, int* linecount, int selected) {
 	struct t_user* rtu = uht_search(tweet->user_id); 
 
 	char* rtusn = (rtu ? rtu->screen_name : "(unknown)");
+	char* rtuname = (rtu ? rtu->name : "NULL");
 
-	mvwprintw(tp,lines-2,1,"RT by @%s",rtusn);
+	if (rtuname) mvwprintw(tp,lines-1,1,"RT by %s",rtuname); else mvwprintw(tp,lines-1,1,"RT by @%s",rtusn);
 
 	userdel(rtu);
 
 	char rttime[8];
 	reltimestr(tweet->created_at,rttime);
-	mvwaddstr(tp,lines-2,colwidth-1-strlen(rttime),rttime);
+	mvwaddstr(tp,lines-1,colwidth-1-strlen(rttime),rttime);
 
 
 
 
     }
 
-    wbkgdset(tp,COLOR_PAIR(7));
-
-    if (selected) wattroff(tp,COLOR_PAIR(8));
-
-    wattroff(tp,COLOR_PAIR(7));
-    wmove(tp,lines-1,0);
-    for (int i=0; i < colwidth; i++) {
-
-	waddstr(tp,"▀");
-    }
-    wattroff(tp,COLOR_PAIR(7));
-
+    //wbkgdset(tp,COLOR_PAIR(7));
     if (linecount != NULL) *linecount = lines;
 
     delwin(textpad);
