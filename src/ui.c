@@ -398,6 +398,9 @@ void* uithreadfunc(void* param) {
 			 (colset[cur_col].scrollback)+=COLHEIGHT;
 			 draw_all_columns();
 			 break;
+	    case 'a': {
+			  ui_addAccount();
+			  break; }
 	    case 'i': {
 			  // Load timeline. Tweets will be added.
 			  char inp[80];
