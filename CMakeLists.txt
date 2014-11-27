@@ -40,3 +40,6 @@ include_directories(${NCURSESW_INCLUDE_DIRS})
 
 target_link_libraries(twtclt ${NCURSESW_LIBRARIES} curl oauth json-c pthread libmojibake)
 
+install(TARGETS twtclt
+	RUNTIME DESTINATION bin
+	)
