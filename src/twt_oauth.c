@@ -219,6 +219,14 @@ struct t_account* def_acct(struct t_account* acct) {
     return (acct != NULL ? acct : acctlist[0]);
 }
 
+int acct_id(struct t_account* acct) {
+
+    for (int i=0; i<acct_n; i++) {
+	if (acct == acctlist[i]) return i;
+    }
+    return -1;
+}
+
 int save_accounts() {
     FILE* db = cfopen("accounts.db","w"); if ((db == NULL) && (errno != ENOENT)) { perror("fopen"); return 1;}
     for (int i=0; i < acct_n; i++)

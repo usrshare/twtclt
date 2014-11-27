@@ -4,6 +4,7 @@
 #include <pthread.h>
 #include <stdint.h>
 
+#include "config.h"
 #include "log.h"
 #include "twitter.h"
 #include "twt_oauth.h"
@@ -353,12 +354,14 @@ void* uithreadfunc(void* param) {
 	    case KEY_LEFT:
 		// Select next tweet, TODO make scrolling follow selection
 		if (cur_col > 0) cur_col--;
+		if (cur_col < leftmostcol) leftmostcol = cur_col;
 		scrolltotwt(cur_col,colset[cur_col].curtwtid);
 		draw_all_columns();
 		break;
 	    case KEY_RIGHT:
 		// Select previous tweet, TODO make scrolling follow selection
 		if (colset[cur_col+1].enabled) cur_col++;
+		if (cur_col >= (visiblecolumns + leftmostcol)) leftmostcol = (cur_col - visiblecolumns + 1);
 		scrolltotwt(cur_col,colset[cur_col].curtwtid); 	
 		draw_all_columns();
 		break;
@@ -440,13 +443,26 @@ void* uithreadfunc(void* param) {
 	//draw_column(0,scrollback,acctlist[0]->timelinebt);
     }
 
+    FILE* colfile = cfopen("columns.cfg","w");
+    if (colfile != NULL) save_columns(colfile); 
+    
     endwin();
 
     return NULL;
 
 }
 
-void load_columns(FILE* file) {
+int save_columns(FILE* file) {
+    
+    for (int i=0; i < MAXCOLUMNS; i++)
+	fprintf(file,"%d %d %d %" PRIu64 "\n",colset[i].enabled,acct_id(colset[i].acct),colset[i].tt,colset[i].userid);
+
+    fflush(file);
+    fclose(file);
+    return 0;
+}
+
+int load_columns(FILE* file) {
 
     int i=0;
 
@@ -454,29 +470,20 @@ void load_columns(FILE* file) {
 
     while ( (i < MAXCOLUMNS) && (!feof(file)) ) {
 
-/*int save_accounts() {
-    FILE* db = cfopen("accounts.db","w"); if ((db == NULL) && (errno != ENOENT)) { perror("fopen"); return 1;}
-    for (int i=0; i < acct_n; i++)
-	fprintf(db,"%" PRId64 " %s %s %s %d %d\n",acctlist[i]->userid,acctlist[i]->name,acctlist[i]->key->tkey,acctlist[i]->key->tsct,acctlist[i]->show_in_timeline,acctlist[i]->auth);
+	int enabled; int acct_id; enum timelinetype tt; uint64_t userid; char custom[64];
+	int r = fscanf(file,"%d %d %d %" SCNu64 "\n",&enabled,&acct_id,(int *)&tt,&userid);
+	if (r != 4) { lprintf("%d fields returned instead of 4\n",r); return 1;}
 
-    fflush(db);
-    fclose(db);
-    return 0;
-}*/
-/*	int r = fscanf(db,"%d %16s %128s %128s %hhd %d\n",&userid,name,tkey,tsct,&show_in_timeline,&auth);
-	if (r != 6) { lprintf("%d fields returned instead of 6\n",r); return 1;}
-	struct t_account* na = newAccount();
-	na->userid = userid; na->auth = auth;
-	na->show_in_timeline = show_in_timeline;
-
-	strncpy(na->name,name,16);
-	strncpy(na->key->tkey,tkey,128);
-	strncpy(na->key->tsct,tsct,128);
-	add_acct(na);
- */
-    fclose(file);
-    return;
+	columns[i] = bt_create();
+	colset[i].enabled = enabled;
+	colset[i].acct = (acct_id != -1 ? acctlist[acct_id] : NULL);
+	colset[i].tt = tt;
+	colset[i].userid = userid;	
+	
+    i++;
     }
+    
+fclose(file);
 
 }
 
@@ -836,7 +843,7 @@ WINDOW* tweetpad(struct t_tweet* tweet, int* linecount, int selected) {
     if (tweet->retweeted_status_id) wattron(tp,COLOR_PAIR(4));
 
     for (int i=0; i < colwidth; i++) {
-	waddstr(tp, (specialtw ? "█" : "▔") );
+	waddstr(tp, "▔");
     }
     wattroff(tp,A_BOLD);
 
