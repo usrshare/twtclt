@@ -37,7 +37,7 @@ struct drawcol_ctx{
 
 struct t_timelineset {
     int enabled;
-    uint64_t curtwtid; //id of selected tweet
+    //    uint64_t curtwtid; //id of selected tweet
     uint64_t lastread; //id of last read (visible on screen) tweet.
     struct t_account* acct;
     enum timelinetype tt;
@@ -97,6 +97,7 @@ struct scrollto_ctx {
     int lines;
     int rows;
     int maxrow;
+    int rline;
     uint64_t twtid;
     int res_tl;
     int res_ln;
@@ -113,6 +114,16 @@ void scrollto_btcb(uint64_t id, void* ctx) {
     sts->topline += sts->lines;
     sts->lines = pad->lines;
 
+    if (sts->rline != -1) {
+
+	if ( (sts->topline <= sts->rline) && ((sts->topline + sts->lines) >= (sts->rline)) ) {
+	    sts->res_tl = sts->topline;
+	    sts->res_ln = sts->lines;
+	    sts->twtid = pad->id;
+	}
+    }
+
+
     if ( (id <= sts->twtid) || (sts->rows == sts->maxrow) ) { 
 	sts->res_tl = sts->topline;
 	sts->res_ln = sts->lines;
@@ -122,24 +133,45 @@ void scrollto_btcb(uint64_t id, void* ctx) {
 
     return;
 }
-int scrollto (int col, int row) {
-    struct scrollto_ctx sts = {.topline = 0, .lines = 0, .rows = 0, .maxrow = row, .twtid = 0, .res_tl = -1, .res_ln = 0};
 
-    bt_read(columns[col],scrollto_btcb,&sts,desc);
-
+int adjustscrollback(int col, struct scrollto_ctx sts, uint64_t twtid) {
     if (colset[col].scrollback > sts.topline) colset[col].scrollback = sts.topline;
     if (sts.topline - colset[col].scrollback + sts.lines > COLHEIGHT) colset[col].scrollback = sts.topline + sts.lines - COLHEIGHT;
+    if ( (twtid != 0) && (twtid > colset[col].lastread) ) colset[col].lastread = twtid;
+}
+
+int scrollto (int col, int row) {
+    struct scrollto_ctx sts = {.topline = 0, .lines = 0, .rows = 0, .rline = -1, .maxrow = row, .twtid = 0, .res_tl = -1, .res_ln = 0};
+
+    bt_read(columns[col],scrollto_btcb,&sts,desc);
+    adjustscrollback(col,sts,0);
     return (sts.rows - 1);
 }
 int scrolltotwt (int col, uint64_t twtid) {
-    struct scrollto_ctx sts = {.topline = 0, .lines = 0, .rows = 0, .maxrow = -1, .twtid = twtid, .res_tl = -1, .res_ln = 0};
+    struct scrollto_ctx sts = {.topline = 0, .lines = 0, .rows = 0, .rline = -1, .maxrow = -1, .twtid = twtid, .res_tl = -1, .res_ln = 0};
 
     bt_read(columns[col],scrollto_btcb,&sts,desc);
 
-    if (colset[col].scrollback > sts.topline) colset[col].scrollback = sts.topline;
-    if (sts.topline - colset[col].scrollback + sts.lines > COLHEIGHT) colset[col].scrollback = sts.topline + sts.lines - COLHEIGHT;
+    adjustscrollback(col,sts,twtid);
     if (twtid > colset[col].lastread) colset[col].lastread = twtid;
     return (sts.rows - 1);
+}
+
+uint64_t scrolltoline (int col, int line) {
+    //in this case, line is the line number in the column, not on the screen.
+    struct scrollto_ctx sts = {.topline = 0, .lines = 0, .rows = 0, .rline = line, .maxrow = -1, .twtid = 0, .res_tl = -1, .res_ln = 0};
+
+    bt_read(columns[col],scrollto_btcb,&sts,desc);
+
+    adjustscrollback(col,sts,sts.twtid);
+    return sts.twtid;
+}
+
+int get_tweet_line(int col, uint64_t twtid) {
+    struct scrollto_ctx sts = {.topline = 0, .lines = 0, .rows = 0, .rline = -1, .maxrow = -1, .twtid = twtid, .res_tl = -1, .res_ln = 0};
+    bt_read(columns[col],scrollto_btcb,&sts,desc);
+
+    return ((sts.res_tl) + (sts.res_ln / 2));
 }
 
 //---
@@ -241,7 +273,7 @@ int ui_addAccount() {
     if (r == 1) return 1;
 
     char oauthkey[8];
-    
+
     char baseurl[128];
     memset(baseurl,'\0',sizeof baseurl);
     struct t_account *myacct = newAccount(baseurl);
@@ -251,10 +283,10 @@ int ui_addAccount() {
     if (r != 0) { lprintf("request_token returned %d\n",r); return 1;}
     char* url;
     r = authorize(myacct,&url);
-   
+
     if (r != 0) { lprintf("authorize returned %d\n",r); return 1;}
     int pin = 0;
-    
+
     char navimsg[500];
 
     snprintf(navimsg,499,"To authenticate your Twitter account, please navigate to the following URL and input your login details: \n%s\n",url);
@@ -262,7 +294,7 @@ int ui_addAccount() {
     msgbox(navimsg,msg_info,0,NULL);
 
     free(url);
-    
+
     inputbox("Please enter the 7-digit key you received:",msg_info,oauthkey,7);
 
     pin = atoi(oauthkey);
@@ -317,18 +349,21 @@ struct uicbctx {
 void uistreamcb(uint64_t id, void* cbctx) {
     struct uicbctx* ctx = (struct uicbctx *)cbctx;
     draw_column2(ctx->colnum,colset[ctx->colnum].scrollback,columns[ctx->colnum],0);
-    scrolltotwt(ctx->colnum,colset[ctx->colnum].curtwtid);
+
+    struct tweetbox* twt = pad_search(id);
+
+    if ( ((cur_col != (ctx->colnum)) || (curtwtid == UINT64_MAX)) && (colset[ctx->colnum].scrollback != 0) ) colset[ctx->colnum].scrollback += (twt->lines);
+
     draw_column2(ctx->colnum,colset[ctx->colnum].scrollback,columns[ctx->colnum],1);
 }
 
 void* uithreadfunc(void* param) {
     // -- test.
 
+    cur_col = 0;
+    curtwtid = UINT64_MAX; //first possible tweet
 
-    for (int i=0; i < MAXCOLUMNS; i++)
-	if (colset[i].enabled) colset[i].curtwtid = UINT64_MAX; //first possible tweet
-
-    cur_col = 0; int uiloop = 1;
+    int uiloop = 1;
 
     while(uiloop) {
 
@@ -355,44 +390,46 @@ void* uithreadfunc(void* param) {
 		break;
 	    case 'l':
 		// Show all links in the selected tweet
-	    case KEY_LEFT:
-		// Select next tweet, TODO make scrolling follow selection
-		if (cur_col > 0) cur_col--;
-		if (cur_col < leftmostcol) leftmostcol = cur_col;
-		scrolltotwt(cur_col,colset[cur_col].curtwtid);
-		draw_all_columns();
-		break;
-	    case KEY_RIGHT:
-		// Select previous tweet, TODO make scrolling follow selection
-		if (colset[cur_col+1].enabled) cur_col++;
-		if (cur_col >= (visiblecolumns + leftmostcol)) leftmostcol = (cur_col - visiblecolumns + 1);
-		scrolltotwt(cur_col,colset[cur_col].curtwtid); 	
-		draw_all_columns();
-		break;
+	    case KEY_LEFT: {
+			       // Select next tweet, TODO make scrolling follow selection
+			       int old_col = cur_col;
+			       if (cur_col > 0) cur_col--;
+			       if (cur_col < leftmostcol) leftmostcol = cur_col;
+			       curtwtid = scrolltoline(cur_col,get_tweet_line(old_col,curtwtid) - colset[old_col].scrollback + colset[cur_col].scrollback);
+			       draw_all_columns();
+			       break; }
+	    case KEY_RIGHT: {
+				// Select previous tweet, TODO make scrolling follow selection
+				int old_col = cur_col;
+				if (colset[cur_col+1].enabled) cur_col++;
+				if (cur_col >= (visiblecolumns + leftmostcol)) leftmostcol = (cur_col - visiblecolumns + 1);
+				curtwtid = scrolltoline(cur_col,get_tweet_line(old_col,curtwtid) - colset[old_col].scrollback + colset[cur_col].scrollback);
+				draw_all_columns();
+				break; }
 	    case 'j':
 	    case KEY_DOWN: {
 			       // Select next tweet, TODO make scrolling follow selection
-			       colset[cur_col].curtwtid = row_tweet_shift(cur_col, colset[cur_col].curtwtid, 1);
-			       scrolltotwt(cur_col,colset[cur_col].curtwtid);
+			       curtwtid = row_tweet_shift(cur_col, curtwtid, 1);
+			       scrolltotwt(cur_col,curtwtid);
 			       draw_all_columns();
 			       break; }
 	    case 'k':
 	    case KEY_UP: {
 			     // Select previous tweet, TODO make scrolling follow selection
-			     colset[cur_col].curtwtid = row_tweet_shift(cur_col, colset[cur_col].curtwtid, -1);
-			     scrolltotwt(cur_col,colset[cur_col].curtwtid);
+			     curtwtid = row_tweet_shift(cur_col, curtwtid, -1);
+			     scrolltotwt(cur_col,curtwtid);
 			     draw_all_columns();
 			     break; }
 	    case KEY_HOME:
-			 // Scroll one page down
-			 colset[cur_col].curtwtid = UINT64_MAX;
-			 scrolltotwt(cur_col,colset[cur_col].curtwtid);
+			 // Scroll to the top
+			 curtwtid = UINT64_MAX;
+			 scrolltotwt(cur_col,curtwtid);
 			 draw_all_columns();
 			 break;
 	    case KEY_END:
-			 // Scroll one page down
-			 colset[cur_col].curtwtid = 0;
-			 scrolltotwt(cur_col,colset[cur_col].curtwtid);
+			 // Scroll to the bottom
+			 curtwtid = 0;
+			 scrolltotwt(cur_col,curtwtid);
 			 draw_all_columns();
 			 break;
 	    case KEY_PPAGE:
@@ -449,7 +486,7 @@ void* uithreadfunc(void* param) {
 
     FILE* colfile = cfopen("columns.cfg","w");
     if (colfile != NULL) save_columns(colfile); 
-    
+
     endwin();
 
     return NULL;
@@ -457,7 +494,7 @@ void* uithreadfunc(void* param) {
 }
 
 int save_columns(FILE* file) {
-    
+
     for (int i=0; i < MAXCOLUMNS; i++)
 	fprintf(file,"%d %d %d %" PRIu64 "\n",colset[i].enabled,acct_id(colset[i].acct),colset[i].tt,colset[i].userid);
 
@@ -483,11 +520,11 @@ int load_columns(FILE* file) {
 	colset[i].acct = (acct_id != -1 ? acctlist[acct_id] : NULL);
 	colset[i].tt = tt;
 	colset[i].userid = userid;	
-	
-    i++;
+
+	i++;
     }
-    
-fclose(file);
+
+    fclose(file);
 
 }
 
@@ -497,17 +534,17 @@ void init_columns() {
 
     if (colfile != NULL) load_columns(colfile); else {
 
-    columns[0] = bt_create();
-    colset[0].enabled = 1;
-    colset[0].acct = acctlist[0];
-    colset[0].tt = home;
-    colset[0].customtype = NULL;
+	columns[0] = bt_create();
+	colset[0].enabled = 1;
+	colset[0].acct = acctlist[0];
+	colset[0].tt = home;
+	colset[0].customtype = NULL;
 
-    columns[1] = bt_create();
-    colset[1].enabled = 1;
-    colset[1].acct = acctlist[0];
-    colset[1].tt = mentions;
-    colset[1].customtype = NULL;
+	columns[1] = bt_create();
+	colset[1].enabled = 1;
+	colset[1].acct = acctlist[0];
+	colset[1].tt = mentions;
+	colset[1].customtype = NULL;
 
     }
 }
@@ -640,7 +677,7 @@ void drawcol_cb(uint64_t id, void* ctx) {
 
     struct tweetbox* pad = pad_search(id); 
 
-    int cursel = ( (cur_col == dc->column) && (id == colset[dc->column].curtwtid) );
+    int cursel = ( (cur_col == dc->column) && (id == curtwtid) );
 
     if (pad == NULL) return;
 
@@ -700,7 +737,7 @@ void unread_cb(uint64_t id, void* param) {
     if (id > ctx->min_id) (ctx->unread_tweets)++;
 }
 int get_unread_number(int column) {
-    
+
     struct unread_ctx ctx = {.min_id = colset[column].lastread,.unread_tweets=0};
     bt_read(columns[column],unread_cb,&ctx,desc);
 
@@ -736,13 +773,13 @@ void draw_coldesc(int column) {
 			   }
 			   break; }
 	case direct_messages: {
-			snprintf(coldesc,length,"@%s's DMs",colset[column].acct->name);
+				  snprintf(coldesc,length,"@%s's DMs",colset[column].acct->name);
 				  break; }
 	case search: {
 			 snprintf(coldesc,32,"Search: %s",colset[column].customtype);
 			 break; }
     }
-    
+
     wprintw(newhdr,"%s",coldesc);
 
     touchwin(colhdrs);
@@ -854,7 +891,7 @@ WINDOW* tweetpad(struct t_tweet* tweet, int* linecount, int selected) {
 
     if (tweet->retweeted_status_id) wattroff(tp,COLOR_PAIR(4));
     wattron(tp,bkgtype);
-    
+
     //wattron(tp,A_BOLD);
     mvwchgat(tp,1,1,colwidth-1,A_BOLD,PAIR_NUMBER(bkgtype),NULL);
     if (uname) mvwprintw(tp,1,1,"%s",uname); else mvwprintw(tp,1,1,"@%s",usn);

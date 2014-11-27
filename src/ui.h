@@ -22,19 +22,14 @@ struct tweetbox* pad_search_ind(uint64_t id, int index);
 struct tweetbox* pad_search(uint64_t id);
 
 uint64_t fullid(uint8_t acct, uint64_t id);
-uint8_t colcount;
 
 uint8_t cur_col;
-uint16_t curtwtid;
-uint32_t scroll_lines;
+uint64_t curtwtid;
 
 pthread_t* init_ui();
 int destroy_ui();
 
 void* windowthread(void* param);
-
-int draw_cards();
-void draw_tweet(struct t_tweet* tweet);
 
 void drawcol_cb(uint64_t id, void* ctx);
 void draw_column_limit(int column, int scrollback, struct btree* timeline, int topline, int lines);
