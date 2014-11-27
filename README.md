@@ -19,6 +19,12 @@ After doing so, **twtclt** will be able to statically link **libmojibake**. Righ
 
 As a result, the executable file **twtclt** will appear in the directory.
 
+You can also install **twtclt** globally by typing
+
+    # make install
+    
+as root (or using sudo).
+
 **TODO:** correct installation procedures, automatic **libmojibake** compilation.
 
 ### Libraries
