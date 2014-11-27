@@ -14,6 +14,7 @@ int cursesused = 0;
 
 int lprintf(const char *fmt, ...)
 {
+    if (log_enabled) {
     if (logfile == NULL) {
 	logfile = cfopen("twtclt.log","w");
 	time_t ct = time(NULL);
@@ -33,6 +34,7 @@ int lprintf(const char *fmt, ...)
 	va_end(args);
     }
     fflush(logfile);
+    }
     return 0;
 }
 
@@ -45,4 +47,4 @@ void lperror(const char *s) {
     else
 	lprintf("%s: %s\n",s,strerror(errno));
     return;
-}
+ }

@@ -151,7 +151,8 @@ int draw_column_headers() {
 
 	if (colset[i].enabled) {
 
-	    draw_column(i,colset[i].scrollback,columns[i]);
+	    //draw_column(i,colset[i].scrollback,columns[i]);
+	    draw_coldesc(i);
 	    update_unread(i);
 	}
     }
@@ -335,9 +336,12 @@ void* uithreadfunc(void* param) {
 
 	int k = wgetch(inputbar); 
 
-	mvwprintw(statusbar,0,0,"Hit key %d\n",k); wrefresh(statusbar);
+	lprintf("Hit key %d\n",k);
 
 	switch(k) {
+
+	    case '\x1B': //escape key
+		msgbox("Escape key hit!\n",msg_warning,0,NULL);
 
 	    case 'J':
 		// scroll down a line
@@ -558,6 +562,7 @@ pthread_t* init_ui(){
     init_pair(13,COLOR_WHITE,COLOR_RED); //bars
 
     keypad(stdscr, TRUE);
+    timeout(100);
 
     titlebar = newwin(1,COLS,0,0);
     wbkgd(titlebar,COLOR_PAIR(1));

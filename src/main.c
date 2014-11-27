@@ -117,15 +117,17 @@ int main(int argc, char* argv[]){
     //Used to ensure proper work of wcwidth in utf8.c. Will probably fail on non-UTF8 locales.
     /* char* locale = */ setlocale(LC_ALL,"");
 
-    load_config();
+    int c=0, qparam = 0,waitkey=0; log_enabled = 0;
 
-    int c=0, qparam = 0,waitkey=0;
-
-    while ( (c = getopt(argc,argv,":cdhtvq:")) != -1) {
+    while ( (c = getopt(argc,argv,":dhltvq:")) != -1) {
 
 	switch (c) {
 	    case 'd':
 		waitkey = 1;
+		break;
+	    case 'l':
+		log_enabled = 1;
+		exit(0);
 		break;
 	    case 'h':
 		show_help();
@@ -157,9 +159,10 @@ int main(int argc, char* argv[]){
     if (qparam) printf("qparam is %d\n",qparam);
 
     //end parse argumets with getopt here.
+    
+    load_config();
 
     if (waitkey) getchar();
-
 
     inithashtables();
 
