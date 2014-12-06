@@ -768,9 +768,9 @@ void draw_coldesc(int column) {
 	case mentions: {
 			   char uname[16];
 
-			   uint64_t auth_id = colset[column].acct->userid;
-			   int r= get_username(auth_id,uname,15);
-			   snprintf(coldesc,length,"@%s's mentions",(r >=0 ? uname : NULL));
+			   strncpy(uname,colset[column].acct->name,15);
+
+			   snprintf(coldesc,length,"@%s's mentions",uname);
 			   
 			   break; }
 	case direct_messages: {
