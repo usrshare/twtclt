@@ -158,7 +158,7 @@ int scrolltotwt (int col, uint64_t twtid) {
 }
 
 uint64_t scrolltoline (int col, int line) {
-    //in this case, line is the line number in the column, not on the screen.
+    //in this case, line is the line number in the column, not on the screen. to get screen line number, remove scrollback for the column.
     struct scrollto_ctx sts = {.topline = 0, .lines = 0, .rows = 0, .rline = line, .maxrow = -1, .twtid = 0, .res_tl = -1, .res_ln = 0};
 
     bt_read(columns[col],scrollto_btcb,&sts,desc);
@@ -171,7 +171,7 @@ int get_tweet_line(int col, uint64_t twtid) {
     struct scrollto_ctx sts = {.topline = 0, .lines = 0, .rows = 0, .rline = -1, .maxrow = -1, .twtid = twtid, .res_tl = -1, .res_ln = 0};
     bt_read(columns[col],scrollto_btcb,&sts,desc);
 
-    return ((sts.res_tl) + (sts.res_ln / 2));
+    return ((sts.res_tl) + (sts.res_ln / 2) + 1);
 }
 
 //---
@@ -352,7 +352,7 @@ void uistreamcb(uint64_t id, void* cbctx) {
 
     struct tweetbox* twt = pad_search(id);
 
-    if ( ((cur_col != (ctx->colnum)) || (curtwtid == UINT64_MAX)) && (colset[ctx->colnum].scrollback != 0) ) colset[ctx->colnum].scrollback += (twt->lines);
+    if ( (colset[ctx->colnum].scrollback != 0) && ( (ctx->colnum != cur_col) || (curtwtid == UINT64_MAX) ) ) colset[ctx->colnum].scrollback += (twt->lines);
 
     draw_column2(ctx->colnum,colset[ctx->colnum].scrollback,columns[ctx->colnum],1);
 }
@@ -464,10 +464,10 @@ void* uithreadfunc(void* param) {
 		      draw_all_columns();
 		      break;
 	    case 's': {
-			  int r = msgbox("This is a very experimental feature. Are you sure you want to enable streaming?",msg_warning,2,yesno);
+			  int r = msgbox("This is a very experimental feature. Are you sure you want to enable streaming for this column?",msg_warning,2,yesno);
 			  struct uicbctx* sc = malloc(sizeof(struct uicbctx));
 			  sc->colnum = 0;
-			  if (r == 0) startstreaming(columns[0],colset[0].acct,colset[0].tt,uistreamcb,sc);
+			  if (r == 0) startstreaming(columns[cur_col],colset[cur_col].acct,colset[cur_col].tt,uistreamcb,sc);
 			  draw_all_columns(); }
 		      break;
 	    case 't':
@@ -767,10 +767,11 @@ void draw_coldesc(int column) {
 		       break; }
 	case mentions: {
 			   char uname[16];
-			   if (colset[column].customtype != NULL) strncpy(uname,colset[column].customtype,15); else {
-			       int r= get_username(colset[column].userid,uname,15);
-			       snprintf(coldesc,length,"@%s's mentions",(r >=0 ? uname : NULL));
-			   }
+
+			   uint64_t auth_id = colset[column].acct->userid;
+			   int r= get_username(auth_id,uname,15);
+			   snprintf(coldesc,length,"@%s's mentions",(r >=0 ? uname : NULL));
+			   
 			   break; }
 	case direct_messages: {
 				  snprintf(coldesc,length,"@%s's DMs",colset[column].acct->name);

@@ -230,7 +230,7 @@ int acct_id(struct t_account* acct) {
 int save_accounts() {
     FILE* db = cfopen("accounts.db","w"); if ((db == NULL) && (errno != ENOENT)) { perror("fopen"); return 1;}
     for (int i=0; i < acct_n; i++)
-	fprintf(db,"%" PRId64 " %s %s %s %d %d\n",acctlist[i]->userid,acctlist[i]->name,acctlist[i]->key->tkey,acctlist[i]->key->tsct,acctlist[i]->show_in_timeline,acctlist[i]->auth);
+	fprintf(db,"%" PRIu64 " %s %s %s %d %d\n",acctlist[i]->userid,acctlist[i]->name,acctlist[i]->key->tkey,acctlist[i]->key->tsct,acctlist[i]->show_in_timeline,acctlist[i]->auth);
 
     fflush(db);
     fclose(db);
@@ -238,10 +238,10 @@ int save_accounts() {
 }
 int load_accounts() {
     FILE* db = cfopen("accounts.db","r"); if (db == NULL) { perror("fopen"); if (errno != ENOENT) return 1; else return 0; }
-    int userid = 0, auth = 0;
+    uint64_t userid = 0; int auth = 0;
     char name[16], tkey[128], tsct[128]; char show_in_timeline;
     while (!feof(db)) {
-	int r = fscanf(db,"%d %16s %128s %128s %hhd %d\n",&userid,name,tkey,tsct,&show_in_timeline,&auth);
+	int r = fscanf(db,"%" SCNu64 " %16s %128s %128s %hhd %d\n",&userid,name,tkey,tsct,&show_in_timeline,&auth);
 	if (r != 6) { lprintf("%d fields returned instead of 6\n",r); return 1;}
 	struct t_account* na = newAccount();
 	na->userid = userid; na->auth = auth;

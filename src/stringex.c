@@ -25,9 +25,9 @@ char* addparam(char* orig, const char* parname, const char* parvalue, int addq) 
     sprintf(append,"%s%s=%s",(strchr(orig,'?') ? (addq ? "?" : "") : "&"),parname,parvalue); 
     return strrecat(orig,append);
 }
-char* addparam_int(char* orig, const char* parname, int64_t parvalue, int addq) {
+char* addparam_int(char* orig, const char* parname, uint64_t parvalue, int addq) {
     char pvchr[22]; //enough to store any 64bit number.
-    sprintf(pvchr,"%" PRId64 "",parvalue);
+    sprintf(pvchr,"%" PRIu64 "",parvalue);
     return addparam(orig,parname,pvchr,addq);
 }
 

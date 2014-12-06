@@ -13,7 +13,6 @@
 #ifndef _TWT_H_
 #define _TWT_H_
 
-
 #define MAXTWEETLEN 140 //this header line © sabajo @ #geekissues @ irc.efnet.org  
 
 int initStructures();
@@ -43,9 +42,12 @@ uint64_t load_user(struct t_account* acct, uint64_t userid, char* username);
 struct t_tweet* get_tweet(struct t_account* acct, uint64_t tweetid);
 struct t_user* get_user(struct t_account* acct, uint64_t userid, char* username);
 
+struct _stream_handle;
 
-int startstreaming(struct btree* timeline, struct t_account* acct, enum timelinetype tt, stream_cb cb, void* cbctx);
-int stopstreaming();
+typedef struct _stream_handle* streamhnd;
+
+streamhnd startstreaming(struct btree* timeline, struct t_account* acct, enum timelinetype tt, stream_cb cb, void* cbctx);
+int stopstreaming(streamhnd str);
 
 int load_config();
 

@@ -198,11 +198,14 @@ struct streamcb_ctx {
     size_t buffersz;
     stream_cb cb;
     void* cbctx;
+    int* stop;
 };
 
 size_t streamcb(char *ptr, size_t size, size_t nmemb, void *userdata) {
 
     struct streamcb_ctx* ctx = (struct streamcb_ctx *)userdata;
+    
+    if ( *(ctx->stop) ) return 0;
 
     char* msgstart = ptr;
     char* delim;
@@ -240,6 +243,11 @@ size_t streamcb(char *ptr, size_t size, size_t nmemb, void *userdata) {
 
     return (size * nmemb);
 }
+struct _stream_handle {
+    pthread_t streamthread;
+    int stop;
+};
+
 void* startstreaming_tfunc(void* param) {
 
     struct streamcb_ctx* ctx = (struct streamcb_ctx *)param;
@@ -257,20 +265,23 @@ void* startstreaming_tfunc(void* param) {
     int curlstatus = curl_easy_perform(streamcurl);
     return NULL;
 }
-int startstreaming(struct btree* timeline, struct t_account* acct, enum timelinetype tt, stream_cb cb, void* cbctx) {
 
-    pthread_t streamthread;
+streamhnd startstreaming(struct btree* timeline, struct t_account* acct, enum timelinetype tt, stream_cb cb, void* cbctx) {
+
+    streamhnd hnd = malloc(sizeof(struct _stream_handle));
+    hnd->stop = 0;
 
     struct streamcb_ctx* ctx = malloc(sizeof(struct streamcb_ctx));
 
     ctx->timeline = timeline; ctx->acct=acct; ctx->tt = tt;
-    ctx->buffer = NULL; ctx->buffersz = 0; ctx->cb = cb; ctx->cbctx = cbctx;
+    ctx->buffer = NULL; ctx->buffersz = 0; ctx->cb = cb; ctx->cbctx = cbctx; ctx->stop = hnd->stop;
 
-    int r = pthread_create(&streamthread,NULL,startstreaming_tfunc,ctx);
+    int r = pthread_create(hnd->streamthread,NULL,startstreaming_tfunc,ctx);
 
     if (r != 0) printf("pthread_create returned %d\n",r);
-    return 0;
+    return hnd;
 }
-int stopstreaming() {
+int stopstreaming(streamhnd str) {
+
     return 0;
 }
