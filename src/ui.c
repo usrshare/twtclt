@@ -396,6 +396,7 @@ void* uithreadfunc(void* param) {
 			       if (cur_col > 0) cur_col--;
 			       if (cur_col < leftmostcol) leftmostcol = cur_col;
 			       curtwtid = scrolltoline(cur_col,get_tweet_line(old_col,curtwtid) - colset[old_col].scrollback + colset[cur_col].scrollback);
+			       draw_column_headers();
 			       draw_all_columns();
 			       break; }
 	    case KEY_RIGHT: {
@@ -404,6 +405,7 @@ void* uithreadfunc(void* param) {
 				if (colset[cur_col+1].enabled) cur_col++;
 				if (cur_col >= (visiblecolumns + leftmostcol)) leftmostcol = (cur_col - visiblecolumns + 1);
 				curtwtid = scrolltoline(cur_col,get_tweet_line(old_col,curtwtid) - colset[old_col].scrollback + colset[cur_col].scrollback);
+				draw_column_headers();
 				draw_all_columns();
 				break; }
 	    case 'j':
@@ -799,15 +801,11 @@ void update_unread(int column) {
 	char unreadstr[7];
 	snprintf(unreadstr,6,"%d",unread);
 
-	wmove(unwin,0,8 - strlen(unreadstr)-2-1);
+	wmove(unwin,0,8 - strlen(unreadstr)-1);
 
-	wattron(unwin,COLOR_PAIR(12));
-	waddstr(unwin,"▄");
 	wattron(unwin,COLOR_PAIR(13));
 	waddstr(unwin,unreadstr);
-	wattron(unwin,COLOR_PAIR(12));
-	waddstr(unwin,"▀");
-	wattroff(unwin,COLOR_PAIR(12));
+	wattroff(unwin,COLOR_PAIR(13));
     }
     touchwin(colhdrs);
     wrefresh(unwin);
