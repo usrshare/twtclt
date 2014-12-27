@@ -449,9 +449,9 @@ void* uithreadfunc(void* param) {
 			  break; }
 	    case 'i': {
 			  // Load timeline. Tweets will be added.
-			  char inp[80];
-			  int r = inputbox("Test?",msg_info,inp,80);
-			  msgbox(inp,msg_error,0,NULL);
+			  char test[11];
+			  int r = inputbox_utf8("Test?",msg_info,test,8,10);
+			  msgbox(test,msg_error,0,NULL);
 			  draw_all_columns();
 			  break; }
 	    case 'm': {

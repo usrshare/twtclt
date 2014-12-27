@@ -1,6 +1,127 @@
+// vim: cin:sts=4:sw=4 
 #include "ui_windows.h"
 #include <string.h>
+#include <wchar.h>
 #include "utf8.h"
+
+char* vimfile() {
+
+
+
+}
+
+size_t wintstrlen(wint_t* str) {
+    size_t i=0;
+    while (str[i] != 0) i++;
+    return i;
+}
+
+int inputbox_utf8(const char* message, enum msgboxclass class, char* textfield, size_t maxchars, size_t maxbytes) {
+
+    int msgwidth, msgheight, textw;
+
+    utf8_text_size(message,&msgwidth,&msgheight);
+
+    char* cutmsg = NULL;
+
+    if ((msgwidth) > (COLS - 8)) {
+
+	cutmsg = malloc(strlen(message) + 128);
+
+	int r = utf8_wrap_text(message,cutmsg,strlen(message) + 128,(COLS-8));
+
+	utf8_text_size(cutmsg,&msgwidth,&msgheight);
+
+    }
+
+    char* dispmsg = (cutmsg ? cutmsg : message);
+
+    int textinpsize = maxchars+2;
+
+    int maxwidth = msgwidth+4;
+
+    int maxheight = msgheight+4;
+
+    if (textinpsize >= msgwidth) maxwidth = textinpsize+4;
+
+    int topline = (LINES-maxheight)/2;
+    WINDOW* msgwindow = newwin(maxheight,maxwidth,topline, (COLS-maxwidth)/2);
+
+    switch (class) {
+	case msg_info:
+	    wattron(msgwindow,COLOR_PAIR(10));
+	    box(msgwindow,0,0);
+	    wattroff(msgwindow,COLOR_PAIR(10));
+	    break;
+	case msg_warning:
+	    wattron(msgwindow,COLOR_PAIR(11));
+	    box(msgwindow,0,0);
+	    wattroff(msgwindow,COLOR_PAIR(11));
+	    break;
+	case msg_error:
+	    wattron(msgwindow,COLOR_PAIR(12));
+	    box(msgwindow,0,0);
+	    wattroff(msgwindow,COLOR_PAIR(12));
+	    break;
+	case msg_critical:
+	    wattron(msgwindow,COLOR_PAIR(13));
+	    box(msgwindow,0,0);
+	    wattroff(msgwindow,COLOR_PAIR(13));
+	    break;
+    }
+
+    WINDOW* textwin = derwin(msgwindow,maxheight-4,maxwidth-4,2,2);
+
+    waddstr(textwin,message);
+
+    touchwin(msgwindow);
+    wrefresh(msgwindow);
+
+    WINDOW* textfw = derwin(msgwindow,1,textinpsize,maxheight-2,((maxwidth-textinpsize)/2));
+
+    mvwaddstr(textfw,0,0,"[");
+    for (int i=0; i<maxchars; i++) waddch(textfw,' ');
+    mvwaddstr(textfw,0,textinpsize-1,"]");
+
+    wint_t widetext[maxchars+1]; 
+    int32_t wtext32[maxchars+1];
+
+    int ul=0;
+
+    do {
+   
+    wmove(textfw,0,1);
+    for (int i=0; i<maxchars; i++) waddch(textfw,' ');
+    wmove(textfw,0,1);
+
+    echo();
+    wgetn_wstr(textfw,widetext,maxchars);
+    noecho();
+
+    for (int i=0; i<maxchars; i++) wtext32[i] = widetext[i]; //making sure.
+
+    ul = utf8proc_reencode(wtext32,wintstrlen(wtext32),UTF8PROC_STRIPCC | UTF8PROC_COMPOSE);
+
+    if (ul > maxbytes) { beep(); }
+
+    } while (ul > maxbytes);
+
+    strcpy(textfield,(char*)wtext32);
+
+    delwin(textwin);
+    delwin(msgwindow);
+
+    wtouchln(colarea,(LINES-maxheight)/2-2,maxheight,1);
+    wrefresh(colarea);
+
+    if (cutmsg) free (cutmsg);
+
+    redraw_lines(topline,maxheight);
+
+    return 0;
+ 
+
+}
 
 int inputbox(const char* message, enum msgboxclass class, char* textfield, size_t textsize) {
 
