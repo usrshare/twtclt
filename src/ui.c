@@ -580,50 +580,61 @@ pthread_t* init_ui(){
 
     noecho();
 
-    init_pair(1,COLOR_CYAN,COLOR_BLUE); //background
+    blackcolor = (COLORS > 16) ? 16 : COLOR_BLACK; //256col black, for a better bold.
+    whitecolor = (COLORS > 8) ? COLOR_WHITE + 8 : COLOR_WHITE; //256col white.
+    twtcolor = (COLORS > 16) ? 111 : COLOR_CYAN; //twitter logo color
+    twtcolor2 = (COLORS > 16) ? 68 : COLOR_BLUE; //twitter logo color, darker
+    bgcolor = (COLORS > 8) ? COLOR_WHITE + 8 : COLOR_YELLOW; //background color
+    selbgcolor = (COLORS > 16) ? 253 : COLOR_WHITE; //selected bg color
+    hdrcolor = (COLORS > 16) ? 254 : COLOR_WHITE; //header bg color
+    gray1 = (COLORS > 16) ? 245 : COLOR_BLACK + 8; //roughly equiv to #888888
+   
+    init_pair(15,whitecolor,blackcolor); //background
+    bkgdset(CP_BG); 
+
+    init_pair(1,twtcolor, twtcolor2); //background
     init_pair(2,COLOR_YELLOW,COLOR_BLUE); //bars
-    init_pair(3,COLOR_BLACK,COLOR_WHITE); //cards
-    init_pair(4,COLOR_GREEN,COLOR_WHITE); //retweet indication
-    init_pair(5,COLOR_YELLOW,COLOR_WHITE); //fave indication
-    init_pair(6,COLOR_BLUE,COLOR_WHITE); //mention indication
-    init_pair(7,COLOR_WHITE,COLOR_BLUE); //mention indication
+    init_pair(3,blackcolor,bgcolor); //cards
+    init_pair(4,COLOR_GREEN,bgcolor); //retweet indication
+    init_pair(5,COLOR_YELLOW,bgcolor); //fave indication
+    init_pair(6,COLOR_BLUE,bgcolor); //mention indication
+    init_pair(7,gray1,bgcolor); //grayed out text
 
-    if (COLORS >= 16) 
-	init_pair(8,COLOR_BLACK,COLOR_WHITE + 8); //selected bg
-    else
-	init_pair(8,COLOR_BLACK,COLOR_YELLOW);
-
-    init_pair(9,COLOR_BLACK,COLOR_CYAN); //background
-
-    init_pair(10,COLOR_BLUE,COLOR_BLACK); //bars
-    init_pair(11,COLOR_YELLOW,COLOR_BLACK); //bars
-    init_pair(12,COLOR_RED,COLOR_BLACK); //bars
+    init_pair(8,blackcolor,selbgcolor); //selected bg
+    init_pair(9,gray1,hdrcolor); //headers
+    
+    init_pair(10,COLOR_BLUE,blackcolor); //bars
+    init_pair(11,COLOR_YELLOW,blackcolor); //bars
+    init_pair(12,COLOR_RED,blackcolor); //bars
     init_pair(13,COLOR_WHITE,COLOR_RED); //bars
+    
+    init_pair(14,gray1,selbgcolor); //headers selected bg
+    init_pair(16,gray1,selbgcolor); //grayed out selected
 
     keypad(stdscr, TRUE);
     timeout(100);
 
     titlebar = newwin(1,COLS,0,0);
-    wbkgd(titlebar,COLOR_PAIR(1));
+    wbkgd(titlebar,CP_TWTBG);
     wprintw(titlebar,"twtclt");
     wrefresh(titlebar);
 
     statusbar = newwin(1,(COLS-1),(LINES-1),0);
-    wbkgd(statusbar,COLOR_PAIR(1));
+    wbkgd(statusbar,CP_TWTBG);
 
     inputbar = newwin(1,1,(LINES-1),(COLS-1));
     keypad(inputbar, TRUE);
-    wbkgd(inputbar,COLOR_PAIR(1));
+    wbkgd(inputbar,CP_TWTBG);
 
     wrefresh(titlebar);
 
     colhdrs = newwin(1,COLS,1,0);
-    wbkgdset(colhdrs,COLOR_PAIR(9));
+    wbkgdset(colhdrs,CP_HDR);
     draw_column_headers();
 
     colarea = newwin(COLHEIGHT,COLS,2,0);
-    wbkgdset(colarea,ACS_CKBOARD | COLOR_PAIR(1));
-    wbkgd(colarea,ACS_CKBOARD | COLOR_PAIR(1));
+    wbkgdset(colarea,ACS_CKBOARD | CP_TWTBG);
+    wbkgd(colarea,ACS_CKBOARD | CP_TWTBG);
     wrefresh(colarea);
     wrefresh(statusbar);
     wrefresh(inputbar);
@@ -803,9 +814,9 @@ void update_unread(int column) {
 
 	wmove(unwin,0,8 - strlen(unreadstr)-1);
 
-	wattron(unwin,COLOR_PAIR(13));
+	wattron(unwin,CP_UNREAD);
 	waddstr(unwin,unreadstr);
-	wattroff(unwin,COLOR_PAIR(13));
+	wattroff(unwin,CP_UNREAD);
     }
     touchwin(colhdrs);
     wrefresh(unwin);
@@ -871,30 +882,31 @@ WINDOW* tweetpad(struct t_tweet* tweet, int* linecount, int selected) {
 
     WINDOW* tp = newpad(lines, colwidth);
 
-    chtype bkgtype = ( selected ? COLOR_PAIR(8) : COLOR_PAIR(3) );
+    chtype bkgtype = ( selected ? CP_CARDSEL : CP_CARD );
+    chtype graytype = ( selected ? CP_GRAYSEL : CP_GRAY );
 
     wbkgd(tp,bkgtype);
 
     wattron(tp,bkgtype);
 
-    wattron(tp,A_BOLD);
-
-    int specialtw = (tweet->retweeted_status_id);
-
-    if (tweet->retweeted_status_id) wattron(tp,COLOR_PAIR(4));
-
+    wattron(tp,graytype);
     for (int i=0; i < colwidth; i++) {
 	waddstr(tp, "▔");
     }
-    wattroff(tp,A_BOLD);
+    wattroff(tp,graytype);
+    
+    int specialtw = (tweet->retweeted_status_id);
+    if (tweet->retweeted_status_id) {
+	wattron(tp,CP_RT);
+	mvwaddstr(tp,0,1,"█");
+	wattroff(tp,CP_RT);
+    }
 
-    if (tweet->retweeted_status_id) wattroff(tp,COLOR_PAIR(4));
     wattron(tp,bkgtype);
 
-    //wattron(tp,A_BOLD);
-    mvwchgat(tp,1,1,colwidth-1,A_BOLD,PAIR_NUMBER(bkgtype),NULL);
+    if (COLORS > 16) wattron(tp,A_BOLD);
     if (uname) mvwprintw(tp,1,1,"%s",uname); else mvwprintw(tp,1,1,"@%s",usn);
-    //wattroff(tp,A_BOLD);
+    if (COLORS > 16) wattroff(tp,A_BOLD);
 
     char reltime[8];
     reltimestr(ot->created_at,reltime);
@@ -907,6 +919,8 @@ WINDOW* tweetpad(struct t_tweet* tweet, int* linecount, int selected) {
     touchwin(tp);
 
     if (tweet->retweeted_status_id) {
+	
+	wattron(tp,graytype);
 
 	struct t_user* rtu = uht_search(tweet->user_id); 
 
@@ -920,13 +934,10 @@ WINDOW* tweetpad(struct t_tweet* tweet, int* linecount, int selected) {
 	char rttime[8];
 	reltimestr(tweet->created_at,rttime);
 	mvwaddstr(tp,lines-1,colwidth-1-strlen(rttime),rttime);
-
-
-
-
+	
+	wattroff(tp,graytype);
     }
 
-    //wbkgdset(tp,COLOR_PAIR(7));
     if (linecount != NULL) *linecount = lines;
 
     delwin(textpad);

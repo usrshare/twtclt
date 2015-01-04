@@ -1,4 +1,5 @@
 // vim: cin:sts=4:sw=4 
+#include "ui.h"
 #include "ui_windows.h"
 #include <string.h>
 #include <wchar.h>
