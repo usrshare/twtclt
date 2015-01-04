@@ -581,10 +581,10 @@ pthread_t* init_ui(){
     noecho();
 
     blackcolor = (COLORS > 16) ? 16 : COLOR_BLACK; //256col black, for a better bold.
-    whitecolor = (COLORS > 8) ? COLOR_WHITE + 8 : COLOR_WHITE; //256col white.
+    whitecolor = (COLORS > 16) ? 231 : COLOR_WHITE; //256col white.
     twtcolor = (COLORS > 16) ? 111 : COLOR_CYAN; //twitter logo color
     twtcolor2 = (COLORS > 16) ? 68 : COLOR_BLUE; //twitter logo color, darker
-    bgcolor = (COLORS > 8) ? COLOR_WHITE + 8 : COLOR_YELLOW; //background color
+    bgcolor = (COLORS > 16) ? 231 : COLOR_YELLOW; //background color
     selbgcolor = (COLORS > 16) ? 253 : COLOR_WHITE; //selected bg color
     hdrcolor = (COLORS > 16) ? 254 : COLOR_WHITE; //header bg color
     gray1 = (COLORS > 16) ? 245 : COLOR_BLACK + 8; //roughly equiv to #888888
@@ -710,7 +710,7 @@ void drawcol_cb(uint64_t id, void* ctx) {
 
 	int skipy = -(dc->curline - dc->scrollback);
 	int topy = ( (dc->curline - dc->scrollback > 0) ? (dc->curline - dc->scrollback) : 0);
-	int boty = ( (dc->curline - dc->scrollback + lines <= COLHEIGHT+1) ? (dc->curline - dc->scrollback + lines) : COLHEIGHT);
+	int boty = ( (dc->curline - dc->scrollback + lines <= COLHEIGHT) ? (dc->curline - dc->scrollback + lines) : COLHEIGHT);
 
 	if ( (dc->lines == 0) || (boty >= dc->topline) || (topy <= dc->topline + dc->lines)) {
 	    pnoutrefresh(tp,skipy,0,topy+2,( (dc->column - leftmostcol)  * colwidth),boty+1,(dc->column - leftmostcol +1) *colwidth - 1);
