@@ -4,6 +4,9 @@
 #include <curses.h>
 #include <pthread.h>
 
+#include "btree.h"
+#include "twt_struct.h"
+
 #ifndef _UI_H_
 #define _UI_H_
 
@@ -22,6 +25,8 @@ struct tweetbox* pad_search_acct(int acct_id, uint64_t id);
 struct tweetbox* pad_search_ind(uint64_t id, int index);
 struct tweetbox* pad_search(uint64_t id);
 
+int save_columns(FILE* file);
+
 uint64_t fullid(uint8_t acct, uint64_t id);
 
 uint8_t cur_col;
@@ -36,6 +41,7 @@ void drawcol_cb(uint64_t id, void* ctx);
 void draw_column_limit(int column, int scrollback, struct btree* timeline, int topline, int lines);
 void draw_column2(int column, int scrollback, struct btree* timeline,int do_update);
 void draw_column(int column, int scrollback, struct btree* timeline);
+void draw_coldesc(int column);
 WINDOW* tweetpad(struct t_tweet* tweet, int* linecount, int selected);
 
 void update_unread(int column);

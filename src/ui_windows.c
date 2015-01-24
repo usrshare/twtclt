@@ -1,17 +1,19 @@
 // vim: cin:sts=4:sw=4 
-#include "ui.h"
-#include "ui_windows.h"
 #include <string.h>
 #include <wchar.h>
+#include <curses.h>
+
+#include "ui.h"
+#include "ui_windows.h"
 #include "utf8.h"
 
 char* vimfile() {
 
 
-
+return NULL;
 }
 
-size_t wintstrlen(wint_t* str) {
+size_t wintstrlen(int32_t* str) {
     size_t i=0;
     while (str[i] != 0) i++;
     return i;
@@ -19,7 +21,7 @@ size_t wintstrlen(wint_t* str) {
 
 int inputbox_utf8(const char* message, enum msgboxclass class, char* textfield, size_t maxchars, size_t maxbytes) {
 
-    int msgwidth, msgheight, textw;
+    int msgwidth, msgheight;
 
     utf8_text_size(message,&msgwidth,&msgheight);
 
@@ -31,11 +33,13 @@ int inputbox_utf8(const char* message, enum msgboxclass class, char* textfield, 
 
 	int r = utf8_wrap_text(message,cutmsg,strlen(message) + 128,(COLS-8));
 
+	if (r != 0) return -1;
+
 	utf8_text_size(cutmsg,&msgwidth,&msgheight);
 
     }
 
-    char* dispmsg = (cutmsg ? cutmsg : message);
+    const char* dispmsg = (cutmsg ? cutmsg : message);
 
     int textinpsize = maxchars+2;
 
@@ -73,7 +77,7 @@ int inputbox_utf8(const char* message, enum msgboxclass class, char* textfield, 
 
     WINDOW* textwin = derwin(msgwindow,maxheight-4,maxwidth-4,2,2);
 
-    waddstr(textwin,message);
+    waddstr(textwin,dispmsg);
 
     touchwin(msgwindow);
     wrefresh(msgwindow);
@@ -81,7 +85,7 @@ int inputbox_utf8(const char* message, enum msgboxclass class, char* textfield, 
     WINDOW* textfw = derwin(msgwindow,1,textinpsize,maxheight-2,((maxwidth-textinpsize)/2));
 
     mvwaddstr(textfw,0,0,"[");
-    for (int i=0; i<maxchars; i++) waddch(textfw,' ');
+    for (size_t i=0; i<maxchars; i++) waddch(textfw,' ');
     mvwaddstr(textfw,0,textinpsize-1,"]");
 
     wint_t widetext[maxchars+1]; 
@@ -92,14 +96,14 @@ int inputbox_utf8(const char* message, enum msgboxclass class, char* textfield, 
     do {
    
     wmove(textfw,0,1);
-    for (int i=0; i<maxchars; i++) waddch(textfw,' ');
+    for (size_t i=0; i<maxchars; i++) waddch(textfw,' ');
     wmove(textfw,0,1);
 
     echo();
     wgetn_wstr(textfw,widetext,maxchars);
     noecho();
 
-    for (int i=0; i<maxchars; i++) wtext32[i] = widetext[i]; //making sure.
+    for (size_t i=0; i<maxchars; i++) wtext32[i] = widetext[i]; //making sure.
 
     ul = utf8proc_reencode(wtext32,wintstrlen(wtext32),UTF8PROC_STRIPCC | UTF8PROC_COMPOSE);
 
@@ -126,7 +130,7 @@ int inputbox_utf8(const char* message, enum msgboxclass class, char* textfield, 
 
 int inputbox(const char* message, enum msgboxclass class, char* textfield, size_t textsize) {
 
-    int msgwidth, msgheight, textw;
+    int msgwidth, msgheight;
 
     utf8_text_size(message,&msgwidth,&msgheight);
 
@@ -138,11 +142,13 @@ int inputbox(const char* message, enum msgboxclass class, char* textfield, size_
 
 	int r = utf8_wrap_text(message,cutmsg,strlen(message) + 128,(COLS-8));
 
+	if (r == -1) return -1;
+
 	utf8_text_size(cutmsg,&msgwidth,&msgheight);
 
     }
 
-    char* dispmsg = (cutmsg ? cutmsg : message);
+    const char* dispmsg = (cutmsg ? cutmsg : message);
 
     int textinpsize = textsize+2;
 
@@ -180,7 +186,7 @@ int inputbox(const char* message, enum msgboxclass class, char* textfield, size_
 
     WINDOW* textwin = derwin(msgwindow,maxheight-4,maxwidth-4,2,2);
 
-    waddstr(textwin,message);
+    waddstr(textwin,dispmsg);
 
     touchwin(msgwindow);
     wrefresh(msgwindow);
@@ -223,6 +229,8 @@ int msgbox(char* message, enum msgboxclass class, int buttons_n, char** btntext)
 	cutmsg = malloc(strlen(message) + 128);
 
 	int r = utf8_wrap_text(message,cutmsg,strlen(message) + 128,(COLS-8));
+
+	if (r == -1) return -1;
 
 	utf8_text_size(cutmsg,&textwidth,&textheight);
 
@@ -268,7 +276,7 @@ int msgbox(char* message, enum msgboxclass class, int buttons_n, char** btntext)
 
     WINDOW* textwin = derwin(msgwindow,maxheight-4,maxwidth-4,2,2);
 
-    waddstr(textwin,message);
+    waddstr(textwin,dispmsg);
 
     touchwin(msgwindow);
 

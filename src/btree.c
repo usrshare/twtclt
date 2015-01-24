@@ -177,7 +177,7 @@ void bt_test_cb(uint64_t id, void* ctx) {
 
 int bt_test() {
 
-    int t = time(NULL); srand((int)t);
+    //int t = time(NULL); srand((int)t);
 
     struct btree* tbt = bt_create();
 

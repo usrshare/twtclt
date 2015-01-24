@@ -263,6 +263,7 @@ void* startstreaming_tfunc(void* param) {
     curl_easy_setopt(streamcurl, CURLOPT_WRITEDATA, ctx); //TODO 
 
     int curlstatus = curl_easy_perform(streamcurl);
+    if (curlstatus != 0) { /* TODO error */ }
     return NULL;
 }
 
@@ -274,9 +275,9 @@ streamhnd startstreaming(struct btree* timeline, struct t_account* acct, enum ti
     struct streamcb_ctx* ctx = malloc(sizeof(struct streamcb_ctx));
 
     ctx->timeline = timeline; ctx->acct=acct; ctx->tt = tt;
-    ctx->buffer = NULL; ctx->buffersz = 0; ctx->cb = cb; ctx->cbctx = cbctx; ctx->stop = hnd->stop;
+    ctx->buffer = NULL; ctx->buffersz = 0; ctx->cb = cb; ctx->cbctx = cbctx; ctx->stop = &(hnd->stop);
 
-    int r = pthread_create(hnd->streamthread,NULL,startstreaming_tfunc,ctx);
+    int r = pthread_create(&(hnd->streamthread),NULL,startstreaming_tfunc,ctx);
 
     if (r != 0) printf("pthread_create returned %d\n",r);
     return hnd;

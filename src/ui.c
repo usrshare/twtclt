@@ -138,6 +138,7 @@ int adjustscrollback(int col, struct scrollto_ctx sts, uint64_t twtid) {
     if (colset[col].scrollback > sts.topline) colset[col].scrollback = sts.topline;
     if (sts.topline - colset[col].scrollback + sts.lines > COLHEIGHT) colset[col].scrollback = sts.topline + sts.lines - COLHEIGHT;
     if ( (twtid != 0) && (twtid > colset[col].lastread) ) colset[col].lastread = twtid;
+    return 0;
 }
 
 int scrollto (int col, int row) {
@@ -188,7 +189,7 @@ int draw_column_headers() {
 	    update_unread(i);
 	}
     }
-
+    return 0;
 }
 int draw_all_columns() {
 
@@ -338,6 +339,7 @@ uint64_t row_tweet_index(int column, uint64_t id, int index) {
 
     if (index == -1) return ctx.index;
     if (id == 0) return ctx.id;
+    return 0;
 }
 
 // row_tweet end
@@ -451,7 +453,7 @@ void* uithreadfunc(void* param) {
 			  // Load timeline. Tweets will be added.
 			  char test[11];
 			  int r = inputbox_utf8("Test?",msg_info,test,8,10);
-			  msgbox(test,msg_error,0,NULL);
+			  if (r == 0) msgbox(test,msg_error,0,NULL);
 			  draw_all_columns();
 			  break; }
 	    case 'm': {
@@ -509,11 +511,9 @@ int load_columns(FILE* file) {
 
     int i=0;
 
-    char colsetline[256];
-
     while ( (i < MAXCOLUMNS) && (!feof(file)) ) {
 
-	int enabled; int acct_id; enum timelinetype tt; uint64_t userid; char custom[64];
+	int enabled; int acct_id; enum timelinetype tt; uint64_t userid; //char custom[64];
 	int r = fscanf(file,"%d %d %d %" SCNu64 "\n",&enabled,&acct_id,(int *)&tt,&userid);
 	if (r != 4) { lprintf("%d fields returned instead of 4\n",r); return 1;}
 
@@ -527,7 +527,7 @@ int load_columns(FILE* file) {
     }
 
     fclose(file);
-
+    return 0;
 }
 
 void init_columns() {
@@ -896,7 +896,7 @@ WINDOW* tweetpad(struct t_tweet* tweet, int* linecount, int selected) {
     wattroff(tp,graytype);
     
     int specialtw = (tweet->retweeted_status_id);
-    if (tweet->retweeted_status_id) {
+    if (specialtw) {
 	wattron(tp,CP_RT);
 	mvwaddstr(tp,0,1,"█");
 	wattroff(tp,CP_RT);
@@ -918,7 +918,7 @@ WINDOW* tweetpad(struct t_tweet* tweet, int* linecount, int selected) {
 
     touchwin(tp);
 
-    if (tweet->retweeted_status_id) {
+    if (specialtw) {
 	
 	wattron(tp,graytype);
 
