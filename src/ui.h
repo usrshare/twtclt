@@ -10,44 +10,13 @@
 #ifndef _UI_H_
 #define _UI_H_
 
-struct tweetbox {
-    int acct_id;
-    uint64_t id;
-    WINDOW* window;
-    int lines;
-};
-
-struct hashtable* padht; //tweet cache hash table.
-
-int pad_insert(struct tweetbox* tbox);
-int pad_delete(uint64_t id);
-struct tweetbox* pad_search_acct(int acct_id, uint64_t id);
-struct tweetbox* pad_search_ind(uint64_t id, int index);
-struct tweetbox* pad_search(uint64_t id);
-
+int load_columns(FILE* file);
 int save_columns(FILE* file);
-
-uint64_t fullid(uint8_t acct, uint64_t id);
-
-uint8_t cur_col;
-uint64_t curtwtid;
 
 pthread_t* init_ui();
 int destroy_ui();
 
 void* windowthread(void* param);
-
-void drawcol_cb(uint64_t id, void* ctx);
-void draw_column_limit(int column, int scrollback, struct btree* timeline, int topline, int lines);
-void draw_column2(int column, int scrollback, struct btree* timeline,int do_update);
-void draw_column(int column, int scrollback, struct btree* timeline);
-void draw_coldesc(int column);
-WINDOW* tweetpad(struct t_tweet* tweet, int* linecount, int selected);
-
-void update_unread(int column);
-
-int redraw_lines(int topline, int lines);
-int draw_all_columns();
 
 //colors
 short blackcolor; //256-color compatible black. allows for bold w/o bright.

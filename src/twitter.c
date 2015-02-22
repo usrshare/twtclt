@@ -44,7 +44,7 @@ int inithashtables(){
     return 0;
 }
 
-int load_timeline_ext(struct btree* timeline, struct t_account* acct, enum timelinetype tt, uint64_t userid, char* customtype, int since_id, int max_id, int count, int trim_user, int exclude_replies, int contributor_details, int include_entities) {
+int load_timeline_ext(struct btree* timeline, struct t_account* acct, enum timelinetype tt, uint64_t userid, char* customtype, int since_id, int max_id, int count, int trim_user, int exclude_replies, int contributor_details, int include_entities, tl_loaded_cb cb, void* cbctx) {
 
     char *baseurl = NULL;
 
@@ -98,17 +98,19 @@ int load_timeline_ext(struct btree* timeline, struct t_account* acct, enum timel
 
     parse_timeline(timeline, tt, reply);
 
+    if (cb) cb(0,0,cbctx);
+
     free(reply);
     free(baseurl);
     return 0;
 }
-int load_timeline(struct btree* timeline, struct t_account* acct, enum timelinetype tt, uint64_t userid, char* customtype) {
-    return load_timeline_ext(timeline,acct,tt,userid,customtype,0,0,0,0,0,0,0);
+int load_timeline(struct btree* timeline, struct t_account* acct, enum timelinetype tt, uint64_t userid, char* customtype, tl_loaded_cb cb, void* cbctx) {
+    return load_timeline_ext(timeline,acct,tt,userid,customtype,0,0,0,0,0,0,0,cb,cbctx);
 }
-int load_global_timeline(struct btree* timeline, enum timelinetype tt, uint64_t userid, char* customtype) {
+int load_global_timeline(struct btree* timeline, enum timelinetype tt, uint64_t userid, char* customtype, tl_loaded_cb cb, void* cbctx) {
     for (int i=0; i < acct_n; i++) {
 	if (acctlist[i]->show_in_timeline)
-	    load_timeline(timeline,acctlist[i],tt,userid,customtype);
+	    load_timeline(timeline,acctlist[i],tt,userid,customtype,cb,cbctx);
     }
     return 0;    
 }
@@ -222,7 +224,7 @@ size_t streamcb(char *ptr, size_t size, size_t nmemb, void *userdata) {
 	    memcpy(msg,msgstart + appendto,strsize); msg[appendto+strsize] = '\0';
 	    uint64_t tweet_id = parsestreamingmsg(msg,appendto+strsize);
 	    if (tweet_id != 0) {
-		bt_insert(ctx->timeline,tweet_id);
+		bt_insert(ctx->timeline,tweet_id,NULL);
 		if (ctx->cb != NULL) ctx->cb(tweet_id,ctx->cbctx);
 	    }
 	}

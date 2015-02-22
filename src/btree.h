@@ -9,6 +9,7 @@
 
 struct btree{
 	uint64_t id;
+	void* data;
 	struct btree* l;
 	struct btree* r;
 };
@@ -18,13 +19,15 @@ enum bt_direction {
 	desc,
 };
 
-typedef void (*btree_cb) (uint64_t id, void* ctx);
+typedef void (*btree_cb) (uint64_t id, void* data, void* ctx);
 
 struct btree* bt_create();
 
-int bt_insert(struct btree* bt, uint64_t id);
+int bt_insert(struct btree* bt, uint64_t id, void* data);
 
 int bt_contains(struct btree* bt, uint64_t id);
+
+void* bt_data(struct btree* bt, uint64_t id);
 
 // plugs the branch into a tree.
 int bt_plug(struct btree* bt, struct btree* branch);

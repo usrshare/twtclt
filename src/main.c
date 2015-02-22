@@ -127,7 +127,6 @@ int main(int argc, char* argv[]){
 		break;
 	    case 'l':
 		log_enabled = 1;
-		exit(0);
 		break;
 	    case 'h':
 		show_help();

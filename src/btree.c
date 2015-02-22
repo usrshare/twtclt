@@ -6,9 +6,10 @@
 
 #include "btree.h"
 
-struct btree* bt_fill(uint64_t id) {
+struct btree* bt_fill(uint64_t id, void* data) {
     struct btree* new = malloc(sizeof(struct btree));
     new->id = id;
+    new->data = data;
     new->l = NULL;
     new->r = NULL;
     return new;
@@ -17,23 +18,24 @@ struct btree* bt_fill(uint64_t id) {
 struct btree* bt_create() {
     struct btree* new = malloc(sizeof(struct btree));
     new->id = 0;
+    new->data = NULL;
     new->l = NULL;
     new->r = NULL;
     return new;
 }
 
-int bt_insert(struct btree* bt, uint64_t id) {
-    if (bt->id == 0) { bt->id = id; bt->l = NULL; bt->r = NULL; return 0; }
+int bt_insert(struct btree* bt, uint64_t id, void* data) {
+    if (bt->id == 0) { bt->id = id; bt->data = data; bt->l = NULL; bt->r = NULL; return 0; }
 
     if (id < bt->id) {
-	if (bt->l != NULL) return bt_insert(bt->l, id);
+	if (bt->l != NULL) return bt_insert(bt->l, id, data);
 
-	bt->l = bt_fill(id); return 0; }
+	bt->l = bt_fill(id,data); return 0; }
 
     if (id > bt->id) {
-	if (bt->r != NULL) return bt_insert(bt->r, id);
+	if (bt->r != NULL) return bt_insert(bt->r, id, data);
 
-	bt->r = bt_fill(id); return 0; }
+	bt->r = bt_fill(id,data); return 0; }
 
     if (id == bt->id) return 2;
 
@@ -52,6 +54,17 @@ int bt_contains(struct btree* bt, uint64_t id) {
     abort();
 }
 
+void* bt_data(struct btree* bt, uint64_t id) {
+    struct btree* i = bt;
+
+    if (i == NULL) return NULL;;
+
+    if (id == i->id) return i->data; else 
+	if (id < i->id) return bt_data(i->l,id); else
+	    if (id > i->id) return bt_data(i->r,id);
+
+    abort();
+}
 int bt_plug(struct btree* tree, struct btree* branch) {
     if (tree == NULL) return 1;
 
@@ -91,6 +104,7 @@ int _bt_remove(struct btree* bt, uint64_t id, struct btree* parent) {
 	case 0:
 	    // left branch exists.
 	    bt->id = bl->id;
+	    bt->data = bl->data;
 	    bt->l  = bl->l;
 	    bt->r  = bl->r;
 	    free(bl);
@@ -99,6 +113,7 @@ int _bt_remove(struct btree* bt, uint64_t id, struct btree* parent) {
 	case 1:
 	    // right branch exists.
 	    bt->id = br->id;
+	    bt->data = br->data;
 	    bt->l  = br->l;
 	    bt->r  = br->r;
 	    free(br);
@@ -107,7 +122,7 @@ int _bt_remove(struct btree* bt, uint64_t id, struct btree* parent) {
 	case -1:
 	    // none of the branches exist.
 
-	    if (parent == NULL) {bt->id = 0; bt->l = NULL; bt->r = NULL; return 0;}
+	    if (parent == NULL) {bt->id = 0; bt->data = NULL; bt->l = NULL; bt->r = NULL; return 0;}
 
 	    if (parent->l == bt) parent->l = NULL; else
 		if (parent->r == bt) parent->r = NULL;
@@ -135,14 +150,14 @@ int bt_read2(struct btree* bt, btree_cb cb, void* ctx, enum bt_direction dir, co
 	case asc:
 	    bt_read2(bt->l,cb,ctx,dir,maxel,curel);
 	    if ( (maxel != 0) && ((*curel) >= maxel) ) return 1;
-	    cb(bt->id,ctx);
+	    cb(bt->id,bt->data,ctx);
 	    if (maxel != 0) (*curel)++;
 	    bt_read2(bt->r,cb,ctx,dir,maxel,curel);
 	    break;
 	case desc:
 	    bt_read2(bt->r,cb,ctx,dir,maxel,curel);
 	    if ( (maxel != 0) && ((*curel) >= maxel) ) return 1;
-	    cb(bt->id,ctx);
+	    cb(bt->id,bt->data,ctx);
 	    if (maxel != 0) (*curel)++;
 	    bt_read2(bt->l,cb,ctx,dir,maxel,curel);
 	    break;
@@ -171,7 +186,7 @@ int bt_read(struct btree* bt, btree_cb cb, void* ctx, enum bt_direction dir) {
     return bt_read2(bt,cb,ctx,dir,0,NULL);
 }
 
-void bt_test_cb(uint64_t id, void* ctx) {
+void bt_test_cb(uint64_t id, void* data, void* ctx) {
     lprintf("%3" PRId64 ,id);
 }
 
@@ -186,7 +201,7 @@ int bt_test() {
     while (n < 20) {
 
 	int q = (rand() % 20) + 1;
-	if ( bt_insert(tbt,q) == 0) n++;
+	if ( bt_insert(tbt,q,NULL) == 0) n++;
     }
 
     bt_log(tbt,0);

@@ -15,6 +15,8 @@
 
 #define MAXTWEETLEN 140 //this header line © sabajo @ #geekissues @ irc.efnet.org  
 
+typedef void (*tl_loaded_cb) (int op_id, int op_type, void* ctx);
+
 int initStructures();
 
 struct t_account* newAccount();
@@ -32,9 +34,9 @@ int oauth_verify(struct t_account* acct, int pin);
 int add_acct(struct t_account* acct);
 int del_acct(struct t_account* acct);
 
-int load_timeline(struct btree* timeline, struct t_account* acct, enum timelinetype tt, uint64_t userid, char* customtype);
-int load_timeline_ext(struct btree* timeline, struct t_account* acct, enum timelinetype tt, uint64_t userid, char* customtype, int since_id, int max_id, int count, int trim_user, int exclude_replies, int contributor_details, int include_entities);
-int load_global_timeline(struct btree* timeline, enum timelinetype tt, uint64_t userid, char* customtype);
+int load_timeline(struct btree* timeline, struct t_account* acct, enum timelinetype tt, uint64_t userid, char* customtype, tl_loaded_cb cb, void* cbctx);
+int load_timeline_ext(struct btree* timeline, struct t_account* acct, enum timelinetype tt, uint64_t userid, char* customtype, int since_id, int max_id, int count, int trim_user, int exclude_replies, int contributor_details, int include_entities, tl_loaded_cb cb, void* cbctx);
+int load_global_timeline(struct btree* timeline, enum timelinetype tt, uint64_t userid, char* customtype, tl_loaded_cb cb, void* cbctx);
 
 uint64_t load_tweet(struct t_account* acct, uint64_t tweetid);
 uint64_t load_user(struct t_account* acct, uint64_t userid, char* username);

@@ -334,7 +334,7 @@ int parse_timeline(struct btree* timeline, enum timelinetype tt, char* timeliner
 	json_object* tweet = json_object_array_get_idx(timelineobj,i);
 	uint64_t tweet_id = parse_json_tweet(tweet,0);
 	//printf("Adding tweet %lld to timeline...\n",tweet_id);
-	bt_insert(timeline,tweet_id);
+	bt_insert(timeline,tweet_id,NULL);
     }
 
     json_tokener_free(jt);
