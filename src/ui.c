@@ -78,7 +78,7 @@ struct t_column {
     struct btree* padbt; //column pad btree
 
     int scrollback;
-    
+
     char title[128]; //up to 32 UTF-8 chars.
 
     WINDOW* header; //column header pad
@@ -103,17 +103,17 @@ void render_timeline(struct btree* timeline, struct btree* padbt);
 
 /*int pad_insert(struct tweetbox* pad){
 
-    return ht_insert(padht,pad->id,pad);
+  return ht_insert(padht,pad->id,pad);
 
-}
+  }
 
-int pad_delete(uint64_t id){
-    struct tweetbox* old = (struct tweetbox*)ht_search(padht,id);
-    int r = ht_delete(padht,id);
-    if (old != NULL) { delwin(old->window); free(old); }
-    return r;
+  int pad_delete(uint64_t id){
+  struct tweetbox* old = (struct tweetbox*)ht_search(padht,id);
+  int r = ht_delete(padht,id);
+  if (old != NULL) { delwin(old->window); free(old); }
+  return r;
 
-}*/
+  }*/
 
 int findcolwidth(int minwidth) {
 
@@ -128,20 +128,20 @@ int findcolwidth(int minwidth) {
 
 /*struct tweetbox* pad_search_acct(int acct_id, uint64_t id){
 
-    int n=0; struct tweetbox* pad = NULL;
-    do {
-	pad = pad_search_ind(id,n);
-	if (pad->acct_id == acct_id) return pad; else n++;}
-    while (pad != NULL);
+  int n=0; struct tweetbox* pad = NULL;
+  do {
+  pad = pad_search_ind(id,n);
+  if (pad->acct_id == acct_id) return pad; else n++;}
+  while (pad != NULL);
 
-    return NULL;
-}
-struct tweetbox* pad_search_ind(uint64_t id, int index){
-    return (struct tweetbox*)ht_search_ind(padht,id,index);
-}
-struct tweetbox* pad_search(uint64_t id){
-    return pad_search_ind(id,0);
-}*/
+  return NULL;
+  }
+  struct tweetbox* pad_search_ind(uint64_t id, int index){
+  return (struct tweetbox*)ht_search_ind(padht,id,index);
+  }
+  struct tweetbox* pad_search(uint64_t id){
+  return pad_search_ind(id,0);
+  }*/
 
 //--- scrollto functions. scroll to row or tweet IDs.
 
@@ -152,6 +152,7 @@ struct scrollto_ctx {
     int maxrow;
     int rline;
     uint64_t twtid;
+    uint64_t lastid;
     int res_tl;
     int res_ln;
 };
@@ -181,6 +182,8 @@ void scrollto_btcb(uint64_t id, void* data, void* ctx) {
 	sts->res_tl = sts->topline;
 	sts->res_ln = sts->lines;
     }
+	    
+    sts->lastid = pad->cnt_id;
 
     sts->rows++;
 
@@ -198,6 +201,8 @@ int scrollto (int col, int row) {
     struct scrollto_ctx sts = {.topline = 0, .lines = 0, .rows = 0, .rline = -1, .maxrow = row, .twtid = 0, .res_tl = -1, .res_ln = 0};
 
     bt_read(cols[col].padbt,scrollto_btcb,&sts,desc);
+    if (sts.twtid == 0) sts.twtid = sts.lastid;
+    
     adjustscrollback(col,sts,0);
     return (sts.rows - 1);
 }
@@ -205,6 +210,7 @@ int scrolltotwt (int col, uint64_t twtid) {
     struct scrollto_ctx sts = {.topline = 0, .lines = 0, .rows = 0, .rline = -1, .maxrow = -1, .twtid = twtid, .res_tl = -1, .res_ln = 0};
 
     bt_read(cols[col].padbt,scrollto_btcb,&sts,desc);
+    if (sts.twtid == 0) sts.twtid = sts.lastid;
 
     adjustscrollback(col,sts,twtid);
     //if (twtid > colset[col].lastread) colset[col].lastread = twtid;
@@ -216,6 +222,7 @@ uint64_t scrolltoline (int col, int line) {
     struct scrollto_ctx sts = {.topline = 0, .lines = 0, .rows = 0, .rline = line, .maxrow = -1, .twtid = 0, .res_tl = -1, .res_ln = 0};
 
     bt_read(cols[col].padbt,scrollto_btcb,&sts,desc);
+    if (sts.twtid == 0) sts.twtid = sts.lastid;
 
     adjustscrollback(col,sts,sts.twtid);
     return sts.twtid;
@@ -245,7 +252,7 @@ int draw_column_headers() {
 	    int colsleft = colwidth - 1;
 
 	    colsleft -= update_unread(i, colsleft);
-	    	    
+
 	    draw_coldesc(i);
 	}
     }
@@ -296,14 +303,14 @@ void loaded_cb(int op_id, int op_type, void* param) {
 int reload_column(int col) {
 
     for (int i=0; i < cols[col].tl_c; i++) {
-	    
+
 	struct t_ui_timeline* tl = cols[col].tl[i];
 
 	struct loadedcb_ctx* ctx = malloc(sizeof(struct loadedcb_ctx));
 	ctx->tl = tl; ctx->col = col;
 
 	load_timeline(tl->bt,tl->acct,tl->tt,tl->userid,tl->customtype,loaded_cb,ctx);
-	
+
     }
     return 0;
 }
@@ -437,17 +444,17 @@ struct uicbctx {
 };
 
 /*
-void uistreamcb(uint64_t id, void* data, void* cbctx) {
-    struct uicbctx* ctx = (struct uicbctx *)cbctx;
-    draw_column2(ctx->colnum,cols[ctx->colnum].scrollback,0);
+   void uistreamcb(uint64_t id, void* data, void* cbctx) {
+   struct uicbctx* ctx = (struct uicbctx *)cbctx;
+   draw_column2(ctx->colnum,cols[ctx->colnum].scrollback,0);
 
-    //struct t_colpad* twt = pad_search(id);
+//struct t_colpad* twt = pad_search(id);
 
-    //if ( (cols[ctx->colnum].scrollback != 0) && ( (ctx->colnum != cur_col) || (curtwtid == UINT64_MAX) ) ) cols[ctx->colnum].scrollback += (twt->lines);
+//if ( (cols[ctx->colnum].scrollback != 0) && ( (ctx->colnum != cur_col) || (curtwtid == UINT64_MAX) ) ) cols[ctx->colnum].scrollback += (twt->lines);
 
-    draw_column2(ctx->colnum,cols[ctx->colnum].scrollback,1);
+draw_column2(ctx->colnum,cols[ctx->colnum].scrollback,1);
 }
-*/
+ */
 
 void* uithreadfunc(void* param) {
     // -- test.
@@ -528,13 +535,19 @@ void* uithreadfunc(void* param) {
 			 break;
 	    case KEY_PPAGE:
 			 // Scroll one page up
-			 (cols[cur_col].scrollback)-=COLHEIGHT; if ((cols[cur_col].scrollback) < 0) (cols[cur_col].scrollback) = 0;
-			 draw_all_columns();
+			 if (curtwtid != UINT64_MAX) {
+
+			     int l = get_tweet_line(cur_col,curtwtid) - COLHEIGHT; if (l < 0) l = 0;
+			     curtwtid = scrolltoline(cur_col,l);
+			     scrolltotwt(cur_col,curtwtid);
+			     draw_all_columns(); }
 			 break;
 	    case KEY_NPAGE:
 			 // Scroll one page down
-			 (cols[cur_col].scrollback)+=COLHEIGHT;
-			 draw_all_columns();
+			 if (curtwtid != 0) {
+			     curtwtid = scrolltoline(cur_col,get_tweet_line(cur_col,curtwtid) + COLHEIGHT);
+			     scrolltotwt(cur_col,curtwtid);
+			     draw_all_columns(); }
 			 break;
 	    case 'a': {
 			  ui_addAccount();
@@ -557,13 +570,13 @@ void* uithreadfunc(void* param) {
 		      reload_all_columns();
 		      draw_all_columns();
 		      break;
-/*	    case 's': {
-			  int r = msgbox("This is a very experimental feature. Are you sure you want to enable streaming for this column?",msg_warning,2,yesno);
-			  struct uicbctx* sc = malloc(sizeof(struct uicbctx));
-			  sc->colnum = 0;
-			  if (r == 0) startstreaming(cols[cur_col].padbt,colset[cur_col].acct,colset[cur_col].tt,uistreamcb,sc);
-			  draw_all_columns(); }
-		      break; */
+		      /*	    case 's': {
+				    int r = msgbox("This is a very experimental feature. Are you sure you want to enable streaming for this column?",msg_warning,2,yesno);
+				    struct uicbctx* sc = malloc(sizeof(struct uicbctx));
+				    sc->colnum = 0;
+				    if (r == 0) startstreaming(cols[cur_col].padbt,colset[cur_col].acct,colset[cur_col].tt,uistreamcb,sc);
+				    draw_all_columns(); }
+				    break; */
 	    case 't':
 		      msgbox("Tweeting not yet supported.",msg_error,0,NULL);
 		      draw_all_columns();
@@ -591,7 +604,7 @@ int save_columns(FILE* file) {
 
     for (int i=0; i < MAXCOLUMNS; i++) {
 	fprintf(file,"%d %d\n",cols[i].enabled,cols[i].tl_c);
-	
+
 	for (int j=0; j < cols[i].tl_c; j++) {
 	    struct t_ui_timeline* ctl = cols[i].tl[j];
 	    fprintf(file,"* %d %d %d %" PRIu64 "\n",ctl->enabled,acct_id(ctl->acct),ctl->tt,ctl->userid); }
@@ -610,7 +623,7 @@ int load_columns(FILE* file) {
     while ( (i < MAXCOLUMNS) && (!feof(file)) ) {
 
 	int c_enabled, tl_c;
-	
+
 	int t_enabled, acct_id; enum timelinetype tt; uint64_t userid; //char custom[64];
 
 	int r = fscanf(file,"%d %d\n",&c_enabled,&tl_c);
@@ -619,20 +632,20 @@ int load_columns(FILE* file) {
 	cols[i].tl = malloc(sizeof(struct t_ui_timeline*) * tl_c);
 
 	for (int t=0; t<tl_c; t++) {
-    
+
 	    if (tli < MAXTIMELINES) {
-	    cols[i].tl[t] = &(tls[tli]);
+		cols[i].tl[t] = &(tls[tli]);
 
-	    int r = fscanf(file,"* %d %d %d %" SCNu64 "\n",&t_enabled,&acct_id,(int *)&tt,&userid);
-	    if (r != 4) { lprintf("T: %d fields returned instead of 4\n",r); return 1;}
-	    
-	    tls[tli].enabled = t_enabled;
-	    tls[tli].acct = (acct_id != -1 ? acctlist[acct_id] : NULL);
-	    tls[tli].tt = tt;
-	    tls[tli].userid = userid;
-	    tls[tli].bt = bt_create();
+		int r = fscanf(file,"* %d %d %d %" SCNu64 "\n",&t_enabled,&acct_id,(int *)&tt,&userid);
+		if (r != 4) { lprintf("T: %d fields returned instead of 4\n",r); return 1;}
 
-	    tli++;
+		tls[tli].enabled = t_enabled;
+		tls[tli].acct = (acct_id != -1 ? acctlist[acct_id] : NULL);
+		tls[tli].tt = tt;
+		tls[tli].userid = userid;
+		tls[tli].bt = bt_create();
+
+		tli++;
 	    }
 	}
 	cols[i].tl_c = tl_c;
@@ -708,7 +721,7 @@ pthread_t* init_ui(){
     selbgcolor = (COLORS > 16) ? 253 : COLOR_WHITE; //selected bg color
     hdrcolor = (COLORS > 16) ? 254 : COLOR_WHITE; //header bg color
     gray1 = (COLORS > 16) ? 245 : COLOR_BLACK + 8; //roughly equiv to #888888
-   
+
     init_pair(15,whitecolor,blackcolor); //background
     bkgdset(CP_BG); 
 
@@ -722,12 +735,12 @@ pthread_t* init_ui(){
 
     init_pair(8,blackcolor,selbgcolor); //selected bg
     init_pair(9,gray1,hdrcolor); //headers
-    
+
     init_pair(10,COLOR_BLUE,blackcolor); //bars
     init_pair(11,COLOR_YELLOW,blackcolor); //bars
     init_pair(12,COLOR_RED,blackcolor); //bars
     init_pair(13,COLOR_WHITE,COLOR_RED); //bars
-    
+
     init_pair(14,gray1,selbgcolor); //headers selected bg
     init_pair(16,gray1,selbgcolor); //grayed out selected
 
@@ -770,7 +783,7 @@ pthread_t* init_ui(){
 void rendertwt_cb(uint64_t id, void* data, void* ctx) {
 
     //draws an individual tweet into its respective pad, then stores the tweetbox in the respective columns' btree.
-    
+
     if (ctx == NULL) return;
     struct btree* colbt = (struct btree*) ctx;
 
@@ -779,7 +792,7 @@ void rendertwt_cb(uint64_t id, void* data, void* ctx) {
     if (pad == NULL) {
 
 	int lines;
-	
+
 	struct t_colpad* newpad = malloc(sizeof(struct t_colpad));
 
 	newpad->acct_id = 0;
@@ -874,7 +887,7 @@ struct unread_ctx {
 void unread_cb(uint64_t id, void* data, void* param) {
     struct unread_ctx* ctx = (struct unread_ctx*) param;
     if (data) { struct t_colpad* pad = (struct t_colpad*) data;
-    if (!(pad->read)) (ctx->unread_tweets)++; }
+	if (!(pad->read)) (ctx->unread_tweets)++; }
 }
 int get_unread_number(int column) {
 
@@ -931,8 +944,8 @@ uint64_t unique_id (struct btree* timeline, uint64_t id) {
     //looks for ID in a btree and increments until free ID is found.
 
     while (bt_contains(timeline,id) == 0)
-       id++;
-    
+	id++;
+
     return id;    
 }
 
@@ -975,7 +988,7 @@ void render_column(int column) {
 } 
 
 void draw_column(int column, int scrollback) {
-   
+
     draw_column2(column,scrollback,1);
 }
 
@@ -1019,7 +1032,7 @@ WINDOW* tweetpad(struct t_tweet* tweet, int* linecount, int selected) {
 	waddstr(tp, "▔");
     }
     wattroff(tp,graytype);
-    
+
     int specialtw = (tweet->retweeted_status_id);
     if (specialtw) {
 	wattron(tp,CP_RT);
@@ -1044,7 +1057,7 @@ WINDOW* tweetpad(struct t_tweet* tweet, int* linecount, int selected) {
     touchwin(tp);
 
     if (specialtw) {
-	
+
 	wattron(tp,graytype);
 
 	struct t_user* rtu = uht_search(tweet->user_id); 
@@ -1059,7 +1072,7 @@ WINDOW* tweetpad(struct t_tweet* tweet, int* linecount, int selected) {
 	char rttime[8];
 	reltimestr(tweet->created_at,rttime);
 	mvwaddstr(tp,lines-1,colwidth-1-strlen(rttime),rttime);
-	
+
 	wattroff(tp,graytype);
     }
 
