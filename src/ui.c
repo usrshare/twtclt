@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include <stdint.h>
+#include <wchar.h>
 
 #include "config.h"
 #include "log.h"
@@ -57,6 +58,7 @@ enum colpadtype {
     CP_SEARCHBOX,
     CP_REFRESHBTN,
     CP_LOADMOREBTN,
+    CP_COMPOSE,
 };
 
 struct t_colpad { //column pad
@@ -98,6 +100,7 @@ void draw_column2(int column, int scrollback, int do_update);
 void draw_column(int column, int scrollback);
 
 void render_timeline(struct btree* timeline, struct btree* padbt);
+WINDOW* render_compose_pad(char* text, struct t_tweet* respond_to, int acct_id, int* linecount, int selected);
 
 //----------------------------------------------------------- CODE
 
@@ -182,7 +185,7 @@ void scrollto_btcb(uint64_t id, void* data, void* ctx) {
 	sts->res_tl = sts->topline;
 	sts->res_ln = sts->lines;
     }
-	    
+
     sts->lastid = pad->cnt_id;
 
     sts->rows++;
@@ -190,10 +193,9 @@ void scrollto_btcb(uint64_t id, void* data, void* ctx) {
     return;
 }
 
-int adjustscrollback(int col, struct scrollto_ctx sts, uint64_t twtid) {
+int adjustscrollback(int col, struct scrollto_ctx sts) {
     if (cols[col].scrollback > sts.topline) cols[col].scrollback = sts.topline;
     if (sts.topline - cols[col].scrollback + sts.lines > COLHEIGHT) cols[col].scrollback = sts.topline + sts.lines - COLHEIGHT;
-    //if ( (twtid != 0) && (twtid > cols[col].lastread) ) cols[col].lastread = twtid;
     return 0;
 }
 
@@ -202,8 +204,8 @@ int scrollto (int col, int row) {
 
     bt_read(cols[col].padbt,scrollto_btcb,&sts,desc);
     if (sts.twtid == 0) sts.twtid = sts.lastid;
-    
-    adjustscrollback(col,sts,0);
+
+    adjustscrollback(col,sts);
     return (sts.rows - 1);
 }
 int scrolltotwt (int col, uint64_t twtid) {
@@ -212,8 +214,7 @@ int scrolltotwt (int col, uint64_t twtid) {
     bt_read(cols[col].padbt,scrollto_btcb,&sts,desc);
     if (sts.twtid == 0) sts.twtid = sts.lastid;
 
-    adjustscrollback(col,sts,twtid);
-    //if (twtid > colset[col].lastread) colset[col].lastread = twtid;
+    adjustscrollback(col,sts);
     return (sts.rows - 1);
 }
 
@@ -224,7 +225,7 @@ uint64_t scrolltoline (int col, int line) {
     bt_read(cols[col].padbt,scrollto_btcb,&sts,desc);
     if (sts.twtid == 0) sts.twtid = sts.lastid;
 
-    adjustscrollback(col,sts,sts.twtid);
+    adjustscrollback(col,sts);
     return sts.twtid;
 }
 
@@ -577,10 +578,11 @@ void* uithreadfunc(void* param) {
 				    if (r == 0) startstreaming(cols[cur_col].padbt,colset[cur_col].acct,colset[cur_col].tt,uistreamcb,sc);
 				    draw_all_columns(); }
 				    break; */
-	    case 't':
-		      msgbox("Tweeting not yet supported.",msg_error,0,NULL);
+	    case 't': {
+		      char newtweet[640];
+		      compose(cur_col,newtweet,140,640);
 		      draw_all_columns();
-		      break;
+		      break; }
 	    case 'q': {
 			  int r = msgbox("Are you sure you want to exit twtclt?",msg_info,2,yesno);
 			  if (r == 0) uiloop = 0;
@@ -744,6 +746,9 @@ pthread_t* init_ui(){
     init_pair(14,gray1,selbgcolor); //headers selected bg
     init_pair(16,gray1,selbgcolor); //grayed out selected
 
+    init_pair(17,whitecolor, twtcolor2); //compose bg 1
+    init_pair(18,whitecolor, twtcolor); //compose bg 2
+
     keypad(stdscr, TRUE);
     timeout(100);
 
@@ -817,6 +822,53 @@ void rendertwt_cb(uint64_t id, void* data, void* ctx) {
     return;
 }
 
+int compose(int column, char* textbox, size_t maxchars, size_t maxbytes) {
+
+    struct t_colpad* cpad = malloc(sizeof(struct t_colpad));
+
+    cpad->pt = CP_COMPOSE; cpad->read = 1; cpad->pad_id = 0xFFFFFFFF; cpad->cnt_id = UINT64_MAX; cpad->tl = NULL; cpad->acct_id = 0;
+    int composing = 1, cwlines = 0, ocwlines = 0; //compose window lines
+
+    WINDOW* composepad = NULL, *ocp = NULL;
+
+    bt_insert(cols[column].padbt,UINT64_MAX,cpad);
+
+    int curpos = 0;
+
+    wint_t wch;
+
+    strcpy(textbox,"This is a non-functional compose box. Hit <escape> to exit compose mode.\n");
+
+    while (composing) {
+
+	if (composepad) ocp = composepad;
+
+	composepad = render_compose_pad(textbox, NULL, cpad->acct_id, &cwlines, 1);
+	cpad->lines = cwlines;
+	keypad(composepad, TRUE);
+	
+	cpad->window = composepad;
+	if (ocp) { delwin(ocp); ocp = NULL; }
+
+	draw_column(column,0);
+
+	wget_wch(composepad, &wch);
+
+	lprintf("got wide character %d (%lc)\n",wch);
+
+	if (wch == 27) composing = 0; //escape key
+
+
+    }
+	
+    if (composepad) { delwin(composepad); composepad = NULL; }
+
+    bt_remove(cols[column].padbt,UINT64_MAX);
+	
+    draw_column(column,cols[column].scrollback);
+
+    return 0;
+}
 
 void drawcol_cb(uint64_t id, void* data, void* ctx) {
 
@@ -992,7 +1044,65 @@ void draw_column(int column, int scrollback) {
     draw_column2(column,scrollback,1);
 }
 
+WINDOW* render_compose_pad(char* text, struct t_tweet* respond_to, int acct_id, int* linecount, int selected) {
 
+    if (respond_to != NULL) {
+
+
+    }
+
+    char comptext[640];
+
+    utf8_wrap_text(text,comptext,640,colwidth - 2); 
+
+    // ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+    // * | Screen name
+    // -------------------------
+    // Tweet content
+    // RT by screen name | time
+
+    int textlines = countlines(comptext,640);
+
+    int lines = (respond_to ? textlines + 6 : textlines + 4);
+
+    WINDOW* tp = newpad(lines, colwidth);
+
+    chtype bkgtype = ( selected ? CP_COMPSEL : CP_COMPBG1 );
+    chtype texttype = ( selected ? CP_CARD : CP_GRAY );
+
+    wbkgd(tp,bkgtype);
+
+    wattron(tp,bkgtype);
+
+    int response = ( respond_to != NULL);
+    if (response) {
+	wattron(tp,CP_MENT);
+	mvwaddstr(tp,0,1,"█");
+	wattroff(tp,CP_MENT);
+    }
+
+    wattron(tp,bkgtype);
+
+    if (COLORS > 16) wattron(tp,A_BOLD);
+    mvwprintw(tp,1,1,"@%s:",acctlist[acct_id]->name);
+    if (COLORS > 16) wattroff(tp,A_BOLD);
+
+    WINDOW* textpad = subpad(tp,textlines,colwidth-1,3,1);
+
+    wattron(textpad,texttype);
+
+    mvwaddstr(textpad,0,0,comptext);
+
+    wattroff(textpad,texttype);
+
+    touchwin(tp);
+
+    if (linecount != NULL) *linecount = lines;
+
+    delwin(textpad);
+
+    return tp;
+}
 WINDOW* tweetpad(struct t_tweet* tweet, int* linecount, int selected) {
     if (tweet == NULL) return NULL;
     char tweettext[400];

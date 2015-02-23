@@ -43,6 +43,8 @@ short gray1; //roughly equiv to #888888
 #define CP_HDRSEL COLOR_PAIR(14)
 #define CP_BG COLOR_PAIR(15)
 #define CP_GRAYSEL COLOR_PAIR(16)
+#define CP_COMPBG1 COLOR_PAIR(17)
+#define CP_COMPSEL COLOR_PAIR(18)
 //end color pairs
 
 #endif

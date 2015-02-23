@@ -53,6 +53,7 @@ int addAccount() {
 
     return 0;
 }
+
 /*
    void print_nc_tweet(uint64_t id, void* ctx) {
    struct t_tweet* tt = tht_search(id);
@@ -95,6 +96,8 @@ int addAccount() {
    return;
    }
  */
+
+
 void show_help() {
     printf("      -d | wait for a keypress before starting. useful for debugging\n");
     printf("      -h | show this help screen\n");
