@@ -5,14 +5,17 @@
 #include <assert.h>
 #include "utf8.h"
 
-const int32_t spaces[25] = {0x09,0x0a,0x0b,0x0c,0x0d,0x20,0x85,0xa0,0x1680,0x2000,0x2001,0x2002,0x2003,0x2004,0x2005,0x2006,0x2007,0x2008,0x2009,0x200a,0x2028,0x2029,0x202f,0x205f,0x3000};
-const int32_t delimiters[4] = {32,0x2e,0x21,0x3f};
-const int32_t linebreaks[2] = {10,13};
+const int32_t spaces[] = {0x09,0x0a,0x0b,0x0c,0x0d,0x20,0x85,0xa0,0x1680,0x2000,0x2001,0x2002,0x2003,0x2004,0x2005,0x2006,0x2007,0x2008,0x2009,0x200a,0x2028,0x2029,0x202f,0x205f,0x3000,0};
+const int32_t delimiters[] = {32,0};
+const int32_t linebreaks[] = {10,13,0};
 
-int utf8char_in_set(int32_t uc, const int32_t* set, int32_t setlen) {
+int utf8char_in_set(int32_t uc, const int32_t* set) {
 
-    for (int i=0; i<setlen; i++)
+    int i=0;
+    while (set[i] != 0) {
 	if (set[i] == uc) return i;
+	i++;
+    }
 
     return -1;
 }
@@ -59,7 +62,7 @@ int utf8_text_size(const char* in, int* width, int* height) {
     do {
 	r = utf8proc_iterate(iter,l,&uc);
 
-	if ((r <= 0) || (utf8char_in_set(uc,linebreaks,2) != -1)) {
+	if ((r <= 0) || (utf8char_in_set(uc,linebreaks) != -1)) {
 	    lines++;
 	    if (column > maxwidth) maxwidth = column;
 	    column = 0;
@@ -88,7 +91,7 @@ int utf8_wrap_text(const char* in, char* out, size_t maxlen, uint8_t width) {
 
     char res[maxlen];
 
-    res[0] = '\0';
+    memset(res,0,maxlen);
 
     char* strend = (char*) in + strlen(in);
 
@@ -98,20 +101,19 @@ int utf8_wrap_text(const char* in, char* out, size_t maxlen, uint8_t width) {
     char* endline = (char*) in;
     const uint8_t* iter = (const uint8_t *) in;
     int r = 0;
-    size_t l = strlen(in);
     int32_t uc=0;
 
     int bytesleft = (maxlen-4);
 
     do {
-	r = utf8proc_iterate(iter,l,&uc);
+	r = utf8proc_iterate(iter,-1,&uc);
 
-	if (utf8char_in_set(uc,delimiters,4) != -1) {
+	if (utf8char_in_set(uc,delimiters) != -1) {
 
 	    // is a delimiter character
 	    lastdelim = (char*) iter; //word_ _test
 	    endline = lastdelim+r; //   word_t_est
-	} else if (utf8char_in_set(uc,linebreaks,2) != -1) {
+	} else if (utf8char_in_set(uc,linebreaks) != -1) {
 	    // is a line break.
 	    column = 0; linebroken = 1;
 	}
@@ -123,11 +125,12 @@ int utf8_wrap_text(const char* in, char* out, size_t maxlen, uint8_t width) {
 
 	if (column + ucwidth > width) { column = width;} else {
 
-	    if ((utf8char_in_set(uc,spaces,25) == -1) || (column != 0)) { column += ucwidth; colbyte+=r; } else if (!linebroken) lastcol = (char*)iter+r; //will not add char if line starts with a space.
+	    if ((utf8char_in_set(uc,spaces) == -1) || (column != 0)) { column += ucwidth; colbyte+=r; } else if (!linebroken) lastcol = (char*)iter+r; //will not add char if line starts with a space.
 
+	    linebroken=0;
 	    iter+=r;
 	    //colbyte+=r;
-	    l = strend - (char *) iter; }
+	    }
 
 	if (column >= width) {
 
@@ -152,7 +155,7 @@ int utf8_wrap_text(const char* in, char* out, size_t maxlen, uint8_t width) {
 
 	    if (r == 0) { strcat(res,"…"); /*3 bytes */ }
 	}
-    } while (r > 0);
+    } while ((r > 0) && (*iter != 0));
 
     if (bytesleft >= colbyte+1) strncat(res,lastcol,colbyte);
 
@@ -202,4 +205,40 @@ char* point_to_char_by_idx(const char* text, int idx) {
 
     return (char *)iter;
 
+}
+
+int utf8_charstart(char* byte) {
+    if ((*byte & 0x10000000) == 0) return 1; //1 byte char
+    if ((*byte & 0x11000000) == 0x11000000) return 1; //multibyte start char
+    return 0;
+}
+
+int utf8_remove_last(char* text) {
+
+    //removes last code point from a UTF-8 text.
+
+    size_t len = strlen(text);
+
+    if (len == 0) return 1;
+
+    char* lastchar = text + (len-1);
+
+    while (lastchar >= text) {
+	if (utf8_charstart(lastchar)) *lastchar = '\0';
+	lastchar--;
+    }
+    return 0;
+}
+
+int utf8_append_char(int32_t uc, char* string, size_t maxbytes) {
+
+    char encchar[5]; //utf8 char length max 4 bytes + 1b for 0.
+    for (int i=0; i<5; i++) encchar[i] = 0;
+
+    ssize_t l = utf8proc_encode_char(uc,encchar);
+
+    if ((strlen(string) + l + 1) > maxbytes) return 1;
+
+    strncat(string,encchar,l+1);
+    return 0;
 }

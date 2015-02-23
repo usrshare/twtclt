@@ -490,6 +490,7 @@ void* uithreadfunc(void* param) {
 		break;
 	    case 'l':
 		// Show all links in the selected tweet
+		break;
 	    case KEY_LEFT: {
 			       // Select next tweet, TODO make scrolling follow selection
 			       int old_col = cur_col;
@@ -841,24 +842,31 @@ int compose(int column, char* textbox, size_t maxchars, size_t maxbytes) {
 
     while (composing) {
 
-	if (composepad) ocp = composepad;
+	ocp = composepad;
 
 	composepad = render_compose_pad(textbox, NULL, cpad->acct_id, &cwlines, 1);
 	cpad->lines = cwlines;
-	keypad(composepad, TRUE);
 	
 	cpad->window = composepad;
 	if (ocp) { delwin(ocp); ocp = NULL; }
 
 	draw_column(column,0);
 
+	keypad(composepad, TRUE);
 	wget_wch(composepad, &wch);
 
 	lprintf("got wide character %d (%lc)\n",wch);
 
-	if (wch == 27) composing = 0; //escape key
+	switch(wch) {
+	    case 27: //escape
+		composing = 0;
+		break;
+	    default: {
+		int r = utf8_append_char(wch,textbox,maxbytes);
+		if (r == 1) beep();
+		break; }
 
-
+	}
     }
 	
     if (composepad) { delwin(composepad); composepad = NULL; }
@@ -1090,6 +1098,7 @@ WINDOW* render_compose_pad(char* text, struct t_tweet* respond_to, int acct_id, 
     WINDOW* textpad = subpad(tp,textlines,colwidth-1,3,1);
 
     wattron(textpad,texttype);
+    wbkgdset(textpad,texttype);
 
     mvwaddstr(textpad,0,0,comptext);
 
@@ -1105,7 +1114,7 @@ WINDOW* render_compose_pad(char* text, struct t_tweet* respond_to, int acct_id, 
 }
 WINDOW* tweetpad(struct t_tweet* tweet, int* linecount, int selected) {
     if (tweet == NULL) return NULL;
-    char tweettext[400];
+    char tweettext[640];
 
     struct t_tweet* ot = (tweet->retweeted_status_id ? tht_search(tweet->retweeted_status_id) : tweet ); //original tweet
 
@@ -1116,7 +1125,7 @@ WINDOW* tweetpad(struct t_tweet* tweet, int* linecount, int selected) {
     char* usn = rtu->screen_name;
     char* uname = rtu->name;
 
-    utf8_wrap_text(text,tweettext,400,colwidth - 2); 
+    utf8_wrap_text(text,tweettext,640,colwidth - 2); 
 
     // ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
     // * | Screen name
@@ -1124,7 +1133,7 @@ WINDOW* tweetpad(struct t_tweet* tweet, int* linecount, int selected) {
     // Tweet content
     // RT by screen name | time
 
-    int textlines = countlines(tweettext,400);
+    int textlines = countlines(tweettext,640);
 
     int lines = (tweet->retweeted_status_id ? textlines + 5 : textlines + 3);
 

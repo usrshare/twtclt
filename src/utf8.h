@@ -12,7 +12,7 @@ struct textsize {
 
 int utf8_test();
 
-int utf8char_in_set(int32_t uc, const int32_t* set, int32_t setlen);
+int utf8char_in_set(int32_t uc, const int32_t* set);
 
 ssize_t utf8_strnlen(const uint8_t* in, size_t maxlen);
 
@@ -25,5 +25,8 @@ int utf8_count_chars(const char* text);
 int tweet_count_chars(const char* text);
 
 char* point_to_char_by_idx(const char* text, int idx);
+
+int utf8_append_char(int32_t uc, char* string, size_t maxbytes);
+int utf8_remove_last(char* text);
 
 #endif
