@@ -5,7 +5,7 @@
 #include <assert.h>
 #include "utf8.h"
 
-const int32_t spaces[] = {0x09,0x0a,0x0b,0x0c,0x0d,0x20,0x85,0xa0,0x1680,0x2000,0x2001,0x2002,0x2003,0x2004,0x2005,0x2006,0x2007,0x2008,0x2009,0x200a,0x2028,0x2029,0x202f,0x205f,0x3000,0};
+const int32_t spaces[] = {0x20,0x85,0xa0,0x1680,0x2000,0x2001,0x2002,0x2003,0x2004,0x2005,0x2006,0x2007,0x2008,0x2009,0x200a,0x2028,0x2029,0x202f,0x205f,0x3000,0};
 const int32_t delimiters[] = {32,0};
 const int32_t linebreaks[] = {10,13,0};
 
@@ -157,11 +157,11 @@ int utf8_wrap_text(const char* in, char* out, size_t maxlen, uint8_t width) {
 	}
     } while ((r > 0) && (*iter != 0));
 
-    if (bytesleft >= colbyte+1) strncat(res,lastcol,colbyte);
+    if (bytesleft >= colbyte+1) { strncat(res,lastcol,colbyte); }
 
     assert(strlen(res) < maxlen);
 
-    strncpy(out,res,strlen(res)+1);
+    strcpy(out,res);
 
     return strlen(res)+1;
 }
@@ -224,7 +224,7 @@ int utf8_remove_last(char* text) {
     char* lastchar = text + (len-1);
 
     while (lastchar >= text) {
-	if (utf8_charstart(lastchar)) *lastchar = '\0';
+	if (utf8_charstart(lastchar)) { *lastchar = '\0'; return 0;}
 	lastchar--;
     }
     return 0;
@@ -233,12 +233,12 @@ int utf8_remove_last(char* text) {
 int utf8_append_char(int32_t uc, char* string, size_t maxbytes) {
 
     char encchar[5]; //utf8 char length max 4 bytes + 1b for 0.
-    for (int i=0; i<5; i++) encchar[i] = 0;
+    memset(encchar,0,5);
 
     ssize_t l = utf8proc_encode_char(uc,encchar);
 
     if ((strlen(string) + l + 1) > maxbytes) return 1;
 
-    strncat(string,encchar,l+1);
+    strncat(string,encchar,l);
     return 0;
 }

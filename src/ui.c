@@ -581,6 +581,7 @@ void* uithreadfunc(void* param) {
 				    break; */
 	    case 't': {
 		      char newtweet[640];
+		      memset(newtweet,0,640);
 		      compose(cur_col,newtweet,140,640);
 		      draw_all_columns();
 		      break; }
@@ -837,20 +838,13 @@ int compose(int column, char* textbox, size_t maxchars, size_t maxbytes) {
     int curpos = 0;
 
     wint_t wch;
-
-    strcpy(textbox,"This is a non-functional compose box. Hit <escape> to exit compose mode.\n");
+	
+    composepad = render_compose_pad(textbox, NULL, cpad->acct_id, &cwlines, 1);
+    cpad->lines = cwlines;
+    cpad->window = composepad;
+    draw_column(column,0);
 
     while (composing) {
-
-	ocp = composepad;
-
-	composepad = render_compose_pad(textbox, NULL, cpad->acct_id, &cwlines, 1);
-	cpad->lines = cwlines;
-	
-	cpad->window = composepad;
-	if (ocp) { delwin(ocp); ocp = NULL; }
-
-	draw_column(column,0);
 
 	keypad(composepad, TRUE);
 	wget_wch(composepad, &wch);
@@ -861,12 +855,26 @@ int compose(int column, char* textbox, size_t maxchars, size_t maxbytes) {
 	    case 27: //escape
 		composing = 0;
 		break;
+	    case 127: { //backspace
+		int r = utf8_remove_last(textbox);
+		lprintf("-1 char now looks like:\n%s\n",textbox);
+	        if (r == 1) beep();	
+		break; }
 	    default: {
 		int r = utf8_append_char(wch,textbox,maxbytes);
+		lprintf("+1 char now looks like:\n%s\n",textbox);
 		if (r == 1) beep();
 		break; }
-
 	}
+	ocp = composepad;
+
+	composepad = render_compose_pad(textbox, NULL, cpad->acct_id, &cwlines, 1);
+	cpad->lines = cwlines;
+	
+	cpad->window = composepad;
+	if (ocp) { delwin(ocp); ocp = NULL; }
+
+	draw_column(column,0);
     }
 	
     if (composepad) { delwin(composepad); composepad = NULL; }
@@ -1094,15 +1102,21 @@ WINDOW* render_compose_pad(char* text, struct t_tweet* respond_to, int acct_id, 
     if (COLORS > 16) wattron(tp,A_BOLD);
     mvwprintw(tp,1,1,"@%s:",acctlist[acct_id]->name);
     if (COLORS > 16) wattroff(tp,A_BOLD);
-
+    
     WINDOW* textpad = subpad(tp,textlines,colwidth-1,3,1);
-
+    
     wattron(textpad,texttype);
-    wbkgdset(textpad,texttype);
 
     mvwaddstr(textpad,0,0,comptext);
-
+    wattron(textpad,A_BLINK);
+    waddstr(textpad,"⎽");
+    wattroff(textpad,A_BLINK);
     wattroff(textpad,texttype);
+
+    WINDOW* clearpad = subpad(tp,textlines,colwidth-2,3,1);
+    
+    wbkgd(clearpad,texttype);
+    delwin(clearpad);
 
     touchwin(tp);
 
