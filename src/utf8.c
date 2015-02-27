@@ -207,9 +207,10 @@ char* point_to_char_by_idx(const char* text, int idx) {
 
 }
 
-int utf8_charstart(char* byte) {
-    if ((*byte & 0x10000000) == 0) return 1; //1 byte char
-    if ((*byte & 0x11000000) == 0x11000000) return 1; //multibyte start char
+int utf8_charstart(uint8_t* byte) {
+    if (*byte == 0) return 0;
+    if (*byte <= 0x7f) return 1; //1 byte char
+    if (*byte >= 0xc0) return 1; //multibyte start char
     return 0;
 }
 
@@ -224,7 +225,7 @@ int utf8_remove_last(char* text) {
     char* lastchar = text + (len-1);
 
     while (lastchar >= text) {
-	if (utf8_charstart(lastchar)) { *lastchar = '\0'; return 0;}
+	if (utf8_charstart(lastchar)) { *lastchar = 0; return 0;}
 	lastchar--;
     }
     return 0;
