@@ -82,12 +82,19 @@ int utf8_text_size(const char* in, int* width, int* height) {
 
     return -1; 
 }
-
 int utf8_wrap_text(const char* in, char* out, size_t maxlen, uint8_t width) {
+    return utf8_wrap_text2(in,out,maxlen,width,NULL);
+}
+
+int utf8_wrap_text2(const char* in, char* out, size_t maxlen, uint8_t width, int* loc_char) {
 
     //TODO: Writes a copy of UTF-8 text in _in_, wrapped to _width_ chars per line, into _out_.
 
     if (out == NULL) return -1;
+
+    int lc=0, lcp=0;
+
+    if (loc_char) lc=*loc_char;
 
     char res[maxlen];
 
@@ -102,6 +109,7 @@ int utf8_wrap_text(const char* in, char* out, size_t maxlen, uint8_t width) {
     const uint8_t* iter = (const uint8_t *) in;
     int r = 0;
     int32_t uc=0;
+    int ind = 0;
 
     int bytesleft = (maxlen-4);
 
@@ -115,7 +123,7 @@ int utf8_wrap_text(const char* in, char* out, size_t maxlen, uint8_t width) {
 	    endline = lastdelim+r; //   word_t_est
 	} else if (utf8char_in_set(uc,linebreaks) != -1) {
 	    // is a line break.
-	    column = 0; linebroken = 1;
+	    column = 1; linebroken = 1;
 	}
 
 	wchar_t thiswc = (wchar_t)uc;
@@ -125,10 +133,12 @@ int utf8_wrap_text(const char* in, char* out, size_t maxlen, uint8_t width) {
 
 	if (column + ucwidth > width) { column = width;} else {
 
-	    if ((utf8char_in_set(uc,spaces) == -1) || (column != 0)) { column += ucwidth; colbyte+=r; } else if (!linebroken) lastcol = (char*)iter+r; //will not add char if line starts with a space.
+	    if ((utf8char_in_set(uc,spaces) == -1) || (column != 0)) { column += ucwidth; colbyte+=r; if (ind < lc) lcp++; } else if (!linebroken) lastcol = (char*)iter+r; //will not add char if line starts with a space.
 
 	    linebroken=0;
 	    iter+=r;
+	    if (ind < lc) lcp++;
+	    ind++;
 	    //colbyte+=r;
 	    }
 
@@ -141,7 +151,7 @@ int utf8_wrap_text(const char* in, char* out, size_t maxlen, uint8_t width) {
 	    tocopy = utf8_strnlen((const uint8_t*)lastcol,tocopy);
 
 	    strncat(res,lastcol,tocopy);
-	    if (r) strncat(res,"\n",1);
+	    if (r) { strncat(res,"\n",1); if (ind < lc) lcp++;}
 
 	    bytesleft -= (tocopy + 1 );
 
@@ -162,6 +172,8 @@ int utf8_wrap_text(const char* in, char* out, size_t maxlen, uint8_t width) {
     assert(strlen(res) < maxlen);
 
     strcpy(out,res);
+
+    if (loc_char) *loc_char = lcp;
 
     return strlen(res)+1;
 }
@@ -228,6 +240,15 @@ int utf8_remove_last(char* text) {
 	if (utf8_charstart(lastchar)) { *lastchar = 0; return 0;}
 	lastchar--;
     }
+    return 0;
+}
+
+int utf8_charcount(uint8_t* c) {
+    //returns length of utf8 character, based on the first byte.
+    if (*c <= 0x7f) return 1;
+    if (*c >= 0xc0) return 2;
+    if (*c >= 0xe0) return 3;
+    if (*c >= 0xf0) return 4;
     return 0;
 }
 

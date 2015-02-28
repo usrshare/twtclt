@@ -20,6 +20,8 @@ int utf8_text_size(const char* in, int* width, int* height);
 
 int utf8_wrap_text(const char* in, char* out, size_t maxlen, uint8_t width);
 
+int utf8_wrap_text2(const char* in, char* out, size_t maxlen, uint8_t width, int* loc_char);
+
 int utf8_count_chars(const char* text);
 
 int tweet_count_chars(const char* text);

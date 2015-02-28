@@ -100,7 +100,7 @@ void draw_column2(int column, int scrollback, int do_update);
 void draw_column(int column, int scrollback);
 
 void render_timeline(struct btree* timeline, struct btree* padbt);
-WINDOW* render_compose_pad(char* text, struct t_tweet* respond_to, int acct_id, int* linecount, int selected);
+WINDOW* render_compose_pad(char* text, struct t_tweet* respond_to, int acct_id, int* linecount, int selected, int cursor);
 
 //----------------------------------------------------------- CODE
 
@@ -839,7 +839,7 @@ int compose(int column, char* textbox, size_t maxchars, size_t maxbytes) {
 
     wint_t wch;
 	
-    composepad = render_compose_pad(textbox, NULL, cpad->acct_id, &cwlines, 1);
+    composepad = render_compose_pad(textbox, NULL, cpad->acct_id, &cwlines, 1, curpos);
     cpad->lines = cwlines;
     cpad->window = composepad;
     draw_column(column,0);
@@ -851,6 +851,8 @@ int compose(int column, char* textbox, size_t maxchars, size_t maxbytes) {
 
 	lprintf("got wide character %d (%lc)\n",wch);
 
+	int utf8_count_chars(const char* text);
+
 	switch(wch) {
 	    case 27: //escape
 		composing = 0;
@@ -858,17 +860,23 @@ int compose(int column, char* textbox, size_t maxchars, size_t maxbytes) {
 	    case 127: { //backspace
 		int r = utf8_remove_last(textbox);
 		lprintf("-1 char now looks like:\n%s\n",textbox);
+		curpos--; if (curpos <0) {curpos = 0; beep();}
 	        if (r == 1) beep();	
 		break; }
+	    case KEY_LEFT: {
+			       curpos--; if (curpos < 0) { curpos=0; beep();} break; }
+	    case KEY_RIGHT: {
+			       curpos++; if (curpos > utf8_count_chars(textbox)) {curpos = utf8_count_chars(textbox); beep();} break; }
 	    default: {
 		int r = utf8_append_char(wch,textbox,maxbytes);
 		lprintf("+1 char now looks like:\n%s\n",textbox);
+		curpos++; if (curpos > utf8_count_chars(textbox)) {curpos = utf8_count_chars(textbox); beep();}
 		if (r == 1) beep();
 		break; }
 	}
 	ocp = composepad;
 
-	composepad = render_compose_pad(textbox, NULL, cpad->acct_id, &cwlines, 1);
+	composepad = render_compose_pad(textbox, NULL, cpad->acct_id, &cwlines, 1, curpos);
 	cpad->lines = cwlines;
 	
 	cpad->window = composepad;
@@ -1060,7 +1068,7 @@ void draw_column(int column, int scrollback) {
     draw_column2(column,scrollback,1);
 }
 
-WINDOW* render_compose_pad(char* text, struct t_tweet* respond_to, int acct_id, int* linecount, int selected) {
+WINDOW* render_compose_pad(char* text, struct t_tweet* respond_to, int acct_id, int* linecount, int selected, int cursor) {
 
     if (respond_to != NULL) {
 
@@ -1069,13 +1077,19 @@ WINDOW* render_compose_pad(char* text, struct t_tweet* respond_to, int acct_id, 
 
     char comptext[640];
 
-    utf8_wrap_text(text,comptext,640,colwidth - 2); 
+    int cp = cursor;
+
+    utf8_wrap_text2(text,comptext,640,colwidth - 2,&cp); 
+
+    int ucp = point_to_char_by_idx(comptext,cp) - comptext;
 
     // ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
     // * | Screen name
     // -------------------------
     // Tweet content
     // RT by screen name | time
+
+    lprintf("CP = %d, UCP = %d\n",cp,ucp);
 
     int textlines = countlines(comptext,640);
 
@@ -1107,22 +1121,29 @@ WINDOW* render_compose_pad(char* text, struct t_tweet* respond_to, int acct_id, 
     
     wattron(textpad,texttype);
 
-    mvwaddstr(textpad,0,0,comptext);
-    wattron(textpad,A_BLINK);
-    waddstr(textpad,"⎽");
-    wattroff(textpad,A_BLINK);
-    wattroff(textpad,texttype);
-
     WINDOW* clearpad = subpad(tp,textlines,colwidth-2,3,1);
     
-    wbkgd(clearpad,texttype);
-    delwin(clearpad);
+    wbkgdset(clearpad,texttype);
+ 
+    mvwaddnstr(textpad,0,0,comptext,ucp);
+    wattron(textpad,A_REVERSE);
+    char* cchar = point_to_char_by_idx(comptext, cp);
+    if ((cchar == NULL) || (*cchar == 0)) cchar = " ";
+    waddnstr(textpad,cchar,utf8_charcount((uint8_t*)cchar));
+    wattroff(textpad,A_REVERSE);
+    cchar = point_to_char_by_idx(comptext, cp+1);
+    if (cchar && *cchar) waddstr(textpad,cchar);
+    wattroff(textpad,texttype);
+
+   delwin(clearpad);
 
     touchwin(tp);
 
     if (linecount != NULL) *linecount = lines;
 
     delwin(textpad);
+
+    wmove(tp, lines-1, colwidth-1);
 
     return tp;
 }
