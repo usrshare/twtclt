@@ -580,11 +580,11 @@ void* uithreadfunc(void* param) {
 				    draw_all_columns(); }
 				    break; */
 	    case 't': {
-		      char newtweet[640];
-		      memset(newtweet,0,640);
-		      compose(cur_col,newtweet,140,640);
-		      draw_all_columns();
-		      break; }
+			  char newtweet[640];
+			  memset(newtweet,0,640);
+			  compose(cur_col,newtweet,140,640);
+			  draw_all_columns();
+			  break; }
 	    case 'q': {
 			  int r = msgbox("Are you sure you want to exit twtclt?",msg_info,2,yesno);
 			  if (r == 0) uiloop = 0;
@@ -838,7 +838,7 @@ int compose(int column, char* textbox, size_t maxchars, size_t maxbytes) {
     int curpos = 0;
 
     wint_t wch;
-	
+
     composepad = render_compose_pad(textbox, NULL, cpad->acct_id, &cwlines, 1, curpos);
     cpad->lines = cwlines;
     cpad->window = composepad;
@@ -847,48 +847,65 @@ int compose(int column, char* textbox, size_t maxchars, size_t maxbytes) {
     while (composing) {
 
 	keypad(composepad, TRUE);
-	wget_wch(composepad, &wch);
-
-	lprintf("got wide character %d (%lc)\n",wch);
+	int ctype = wget_wch(composepad, &wch);
 
 	int utf8_count_chars(const char* text);
+	
+	if (ctype == OK) {
+	    lprintf("got wide character %d\n",wch);
 
-	switch(wch) {
-	    case 27: //escape
-		composing = 0;
-		break;
-	    case 127: { //backspace
-		int r = utf8_remove_last(textbox);
-		lprintf("-1 char now looks like:\n%s\n",textbox);
-		curpos--; if (curpos <0) {curpos = 0; beep();}
-	        if (r == 1) beep();	
-		break; }
-	    case KEY_LEFT: {
-			       curpos--; if (curpos < 0) { curpos=0; beep();} break; }
-	    case KEY_RIGHT: {
-			       curpos++; if (curpos > utf8_count_chars(textbox)) {curpos = utf8_count_chars(textbox); beep();} break; }
-	    default: {
-		int r = utf8_append_char(wch,textbox,maxbytes);
-		lprintf("+1 char now looks like:\n%s\n",textbox);
-		curpos++; if (curpos > utf8_count_chars(textbox)) {curpos = utf8_count_chars(textbox); beep();}
-		if (r == 1) beep();
-		break; }
+	    //received a character
+
+	    switch(wch) {
+		case 27: //escape
+		    composing = 0;
+		    break;
+		case 127: { //backspace
+			      int r = utf8_delete_char(textbox,maxchars,curpos-1);
+			      curpos--; if (curpos <0) {curpos = 0; beep();}
+			      if (r == 1) beep();	
+			      break; }
+		default: {
+			     int r = utf8_insert_char(textbox,maxbytes,curpos,wch);
+			     curpos++; if (curpos > utf8_count_chars(textbox)) {curpos = utf8_count_chars(textbox); beep();}
+			     if (r == 1) beep();
+			     break; }
+	    }
 	}
+	else if (ctype == KEY_CODE_YES) {
+	    lprintf("got functionn key %d\n",wch);
+	    switch(wch) {
+
+		case KEY_LEFT: {
+				   curpos--; if (curpos < 0) { curpos=0; beep();} break; }
+		case KEY_RIGHT: {
+				    curpos++; if (curpos > utf8_count_chars(textbox)) {curpos = utf8_count_chars(textbox); beep();} break; }
+
+		case KEY_DC: {
+			      int r = utf8_delete_char(textbox,maxchars,curpos);
+			      if (curpos > utf8_count_chars(textbox)) {curpos = utf8_count_chars(textbox);}
+			      if (r == 1) beep();	
+				 }
+
+	    }
+
+	}
+
 	ocp = composepad;
 
 	composepad = render_compose_pad(textbox, NULL, cpad->acct_id, &cwlines, 1, curpos);
 	cpad->lines = cwlines;
-	
+
 	cpad->window = composepad;
 	if (ocp) { delwin(ocp); ocp = NULL; }
 
 	draw_column(column,0);
     }
-	
+
     if (composepad) { delwin(composepad); composepad = NULL; }
 
     bt_remove(cols[column].padbt,UINT64_MAX);
-	
+
     draw_column(column,cols[column].scrollback);
 
     return 0;
@@ -1116,15 +1133,15 @@ WINDOW* render_compose_pad(char* text, struct t_tweet* respond_to, int acct_id, 
     if (COLORS > 16) wattron(tp,A_BOLD);
     mvwprintw(tp,1,1,"@%s:",acctlist[acct_id]->name);
     if (COLORS > 16) wattroff(tp,A_BOLD);
-    
+
     WINDOW* textpad = subpad(tp,textlines,colwidth-1,3,1);
-    
+
     wattron(textpad,texttype);
 
     WINDOW* clearpad = subpad(tp,textlines,colwidth-2,3,1);
-    
+
     wbkgdset(clearpad,texttype);
- 
+
     mvwaddnstr(textpad,0,0,comptext,ucp);
     wattron(textpad,A_REVERSE);
     char* cchar = point_to_char_by_idx(comptext, cp);
@@ -1135,7 +1152,7 @@ WINDOW* render_compose_pad(char* text, struct t_tweet* respond_to, int acct_id, 
     if (cchar && *cchar) waddstr(textpad,cchar);
     wattroff(textpad,texttype);
 
-   delwin(clearpad);
+    delwin(clearpad);
 
     touchwin(tp);
 

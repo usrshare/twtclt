@@ -28,7 +28,12 @@ int tweet_count_chars(const char* text);
 
 char* point_to_char_by_idx(const char* text, int idx);
 
+int utf8_charcount(uint8_t* c);
+
 int utf8_append_char(int32_t uc, char* string, size_t maxbytes);
 int utf8_remove_last(char* text);
+
+int utf8_insert_char(uint8_t* s, size_t maxsz, int position, int32_t uc);
+int utf8_delete_char(uint8_t* s, size_t maxsz, int position);
 
 #endif

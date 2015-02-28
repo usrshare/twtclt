@@ -137,7 +137,6 @@ int utf8_wrap_text2(const char* in, char* out, size_t maxlen, uint8_t width, int
 
 	    linebroken=0;
 	    iter+=r;
-	    if (ind < lc) lcp++;
 	    ind++;
 	    //colbyte+=r;
 	    }
@@ -237,7 +236,7 @@ int utf8_remove_last(char* text) {
     char* lastchar = text + (len-1);
 
     while (lastchar >= text) {
-	if (utf8_charstart(lastchar)) { *lastchar = 0; return 0;}
+	if (utf8_charstart((uint8_t*)lastchar)) { *lastchar = 0; return 0;}
 	lastchar--;
     }
     return 0;
@@ -251,16 +250,42 @@ int utf8_charcount(uint8_t* c) {
     if (*c >= 0xf0) return 4;
     return 0;
 }
-
 int utf8_append_char(int32_t uc, char* string, size_t maxbytes) {
 
     char encchar[5]; //utf8 char length max 4 bytes + 1b for 0.
     memset(encchar,0,5);
 
-    ssize_t l = utf8proc_encode_char(uc,encchar);
+    ssize_t l = utf8proc_encode_char(uc,(uint8_t*)encchar);
 
     if ((strlen(string) + l + 1) > maxbytes) return 1;
 
     strncat(string,encchar,l);
+    return 0;
+}
+
+int utf8_insert_char(uint8_t* s, size_t maxsz, int position, int32_t uc) {
+    char bk[maxsz];
+    strncpy(bk,(char*) s,maxsz);
+    
+    int up = ( point_to_char_by_idx(s,position) - (char*) s);
+
+    ssize_t l = utf8proc_encode_char(uc, s + up);
+
+    strncpy(s+up+l,bk+up,maxsz);
+    return 0;
+}
+
+int utf8_delete_char(uint8_t* s, size_t maxsz, int position) {
+    
+    if ( (position < 0) || (position >= utf8_count_chars((char*)s) ) ) return 1;
+
+    uint8_t* p2 = (uint8_t*) point_to_char_by_idx(s,position);
+    int pl = utf8_charcount(p2);
+    memmove(p2,p2+pl,strlen(p2+pl));
+    
+    uint8_t* end = p2 + strlen(p2+pl);
+
+    *end = 0;
+
     return 0;
 }
