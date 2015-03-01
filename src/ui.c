@@ -850,13 +850,21 @@ int compose(int column, char* textbox, size_t maxchars, size_t maxbytes) {
 	int ctype = wget_wch(composepad, &wch);
 
 	int utf8_count_chars(const char* text);
-	
+
 	if (ctype == OK) {
 	    lprintf("got wide character %d\n",wch);
 
 	    //received a character
 
 	    switch(wch) {
+		case 1:	
+		case 21: { //CTRL+a, CTRL+u
+		    msgbox("TODO: select account\n",msg_warning,0,NULL);
+		    break; }
+		case 23: { //write tweet
+		    uint64_t tid = update_status(acctlist[cpad->acct_id], textbox, 0);
+		    if (tid) composing = 0; else msgbox ("Some error happened while sending this tweet.\n",msg_error,0,NULL);
+		    break; }
 		case 27: //escape
 		    composing = 0;
 		    break;
@@ -882,13 +890,19 @@ int compose(int column, char* textbox, size_t maxchars, size_t maxbytes) {
 				    curpos++; if (curpos > utf8_count_chars(textbox)) {curpos = utf8_count_chars(textbox); beep();} break; }
 
 		case KEY_DC: {
-			      int r = utf8_delete_char(textbox,maxchars,curpos);
-			      if (curpos > utf8_count_chars(textbox)) {curpos = utf8_count_chars(textbox);}
-			      if (r == 1) beep();	
-				 }
-
+				 int r = utf8_delete_char(textbox,maxchars,curpos);
+				 if (curpos > utf8_count_chars(textbox)) {curpos = utf8_count_chars(textbox);}
+				 if (r == 1) beep();
+				 break; }
+		case KEY_HOME: {
+				   curpos = 0; break; }
+		case KEY_END:
+			       {
+				   curpos = utf8_count_chars(textbox); break; }
+		default: {
+			     beep();
+			     break; }
 	    }
-
 	}
 
 	ocp = composepad;
@@ -925,7 +939,7 @@ void drawcol_cb(uint64_t id, void* data, void* ctx) {
 
     if (pad == NULL) return;
 
-    if (cursel) {
+    if ((pad->pt == CP_TWEET) && (cursel)) {
 
 	struct t_tweet* tt = tht_search(id);
 	if (tt == NULL) return;
@@ -1047,16 +1061,33 @@ void draw_column_limit(int column, int scrollback, int topline, int lines) {
 
     struct drawcol_ctx dc = { .curline=0, .column=column, .row=0, .scrollback=scrollback, .topline=topline, .lines=lines};
     bt_read(cols[column].padbt, drawcol_cb, &dc, desc);
-
+    
+    draw_bg(column,dc.curline - dc.scrollback + 1);
     //int curcol = (dc.curline - dc.scrollback);
     doupdate();
 } 
+
+void draw_bg(int column, int startline) {
+
+    if ((column - leftmostcol) < 0) return;
+    if ((column - leftmostcol) >= visiblecolumns) return;
+
+    chtype backgd[colwidth];
+    for (int i=0; i < colwidth; i++) backgd[i] = (ACS_CKBOARD | CP_TWTBG);
+
+    for (int y=startline; y < LINES-1; y++) {
+	mvaddchnstr(y, (column - leftmostcol) * colwidth , backgd, colwidth);
+    }
+    doupdate();
+}
+
 void draw_column2(int column, int scrollback, int do_update) {
     //btree should contain tweet IDs.
 
     struct drawcol_ctx dc = { .curline=0, .column=column, .row=0, .scrollback=scrollback};
     bt_read(cols[column].padbt, drawcol_cb, &dc, desc);
 
+    draw_bg(column,dc.curline - dc.scrollback + 1);
     //int curcol = (dc.curline - dc.scrollback);
 
     if (do_update) doupdate();

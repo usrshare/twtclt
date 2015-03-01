@@ -30,6 +30,8 @@ const char twt_status_url[] = "https://api.twitter.com/1.1/statuses/show.json"; 
 const char twt_user_url[] =   "https://api.twitter.com/1.1/users/show.json"; //load single user
 const char twt_usrstr_url[] = "https://userstream.twitter.com/1.1/user.json"; //user streams
 
+const char twt_update_url[] = "https://api.twitter.com/1.1/statuses/update.json"; //write tweets
+
 // tweet and user hashtable functions BEGIN
 int initcurl() {
     curl_global_init(CURL_GLOBAL_ALL);
@@ -113,6 +115,36 @@ int load_global_timeline(struct btree* timeline, enum timelinetype tt, uint64_t 
 	    load_timeline(timeline,acctlist[i],tt,userid,customtype,cb,cbctx);
     }
     return 0;    
+}
+
+uint64_t update_status(struct t_account* acct, char* status, uint64_t reply_id) {
+
+    acct = def_acct(acct);
+
+    char *baseurl = strdup(twt_update_url);
+    
+    char *postargs = strdup("\0");
+   
+    char *esc_status = oauth_url_escape(status);
+
+    baseurl = addparam(baseurl,"status",esc_status,1);
+    if (reply_id) baseurl = addparam_int(baseurl,"in_reply_to_status_id",reply_id,1);
+
+    char* req_url = acct_sign_url2(baseurl, &postargs, OA_HMAC, "POST", acct);
+    char* reply = oauth_http_post(req_url,postargs);
+
+    if (!reply) return 1;
+
+    lprintf("Received a reply.\n");
+    
+    uint64_t resid = parse_single_tweet(reply);
+    
+    if (resid == 0) lprintf("Response is not a tweet. Full response: \n%s\n", reply);
+    
+    if (req_url) free(req_url);
+    if (postargs) free(postargs);
+
+    return resid;
 }
 
 uint64_t load_tweet(struct t_account* acct, uint64_t tweetid) {

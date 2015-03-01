@@ -22,7 +22,7 @@ char* strnrecat(char* orig, const char* append, size_t n) {
 
 char* addparam(char* orig, const char* parname, const char* parvalue, int addq) {
     char* append = malloc(1 + strlen(parname) + 1 + strlen(parvalue) + 1);
-    sprintf(append,"%s%s=%s",(strchr(orig,'?') ? (addq ? "?" : "") : "&"),parname,parvalue); 
+    sprintf(append,"%s%s=%s",(strchr(orig,'?') ? (addq ? "?" : "") : ((strlen(orig) > 0) ? "&" : "") ),parname,parvalue); 
     return strrecat(orig,append);
 }
 char* addparam_int(char* orig, const char* parname, uint64_t parvalue, int addq) {
