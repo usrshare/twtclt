@@ -267,7 +267,7 @@ int utf8_insert_char(uint8_t* s, size_t maxsz, int position, int32_t uc) {
     char bk[maxsz];
     strncpy(bk,(char*) s,maxsz);
     
-    int up = ( point_to_char_by_idx(s,position) - (char*) s);
+    int up = ( point_to_char_by_idx((char*)s,position) - (char*) s);
 
     ssize_t l = utf8proc_encode_char(uc, s + up);
 
