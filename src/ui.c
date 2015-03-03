@@ -262,16 +262,16 @@ struct t_account* get_account(int col) {
 
 struct t_account* accounts_menu(int allow_cancel) {
 
-   int items = (allow_cancel ? acct_n + 1 : acct_n);
+    int items = (allow_cancel ? acct_n + 1 : acct_n);
 
-   char* a_id[items];
+    char* a_id[items];
 
-   for (int i=0; i < acct_n; i++) a_id[i] = acctlist[i]->name;
-   if (allow_cancel) a_id[acct_n] = "Cancel";
+    for (int i=0; i < acct_n; i++) a_id[i] = acctlist[i]->name;
+    if (allow_cancel) a_id[acct_n] = "Cancel";
 
-   int r = menu("Select an account:",msg_info,items,a_id,NULL); 
+    int r = menu("Select an account:",msg_info,items,a_id,NULL); 
 
-   if (r < acct_n) return acctlist[r]; else return NULL;
+    if (r < acct_n) return acctlist[r]; else return NULL;
 }
 
 int draw_column_headers() {
@@ -894,17 +894,17 @@ int compose(int column, char* textbox, size_t maxchars, size_t maxbytes) {
 	    switch(wch) {
 		case 1:	
 		case 21: { //CTRL+a, CTRL+u
-		    struct t_account* acct = accounts_menu(1);
-		    if (acct) cpad->acct = acct;
-		    break; }
+			     struct t_account* acct = accounts_menu(1);
+			     if (acct) cpad->acct = acct;
+			     break; }
 		case 20:   //CTRL+t
 		case 23: { //CTRL+w, write tweet
-		    uint64_t tid = update_status(cpad->acct, textbox, 0);
-		    if (tid) composing = 0; else msgbox ("Some error happened while sending this tweet.\n",msg_error,0,NULL);
-		    break; }
+			     uint64_t tid = update_status(cpad->acct, textbox, 0);
+			     if (tid) composing = 0; else msgbox ("Some error happened while sending this tweet.\n",msg_error,0,NULL);
+			     break; }
 		case 27: //escape
-		    composing = 0;
-		    break;
+			 composing = 0;
+			 break;
 		case 127: { //backspace
 			      int r = utf8_delete_char((uint8_t*)textbox,maxchars,curpos-1);
 			      curpos--; if (curpos <0) {curpos = 0; beep();}
@@ -925,6 +925,12 @@ int compose(int column, char* textbox, size_t maxchars, size_t maxbytes) {
 				   curpos--; if (curpos < 0) { curpos=0; beep();} break; }
 		case KEY_RIGHT: {
 				    curpos++; if (curpos > utf8_count_chars(textbox)) {curpos = utf8_count_chars(textbox); beep();} break; }
+
+		case KEY_BACKSPACE: {
+					int r = utf8_delete_char((uint8_t*)textbox,maxchars,curpos-1);
+					curpos--; if (curpos <0) {curpos = 0; beep();}
+					if (r == 1) beep();	
+					break; }	
 
 		case KEY_DC: {
 				 int r = utf8_delete_char((uint8_t*)textbox,maxchars,curpos);
@@ -1112,7 +1118,7 @@ void draw_column_limit(int column, int scrollback, int topline, int lines) {
 
     struct drawcol_ctx dc = { .curline=0, .column=column, .row=0, .scrollback=scrollback, .topline=topline, .lines=lines};
     bt_read(cols[column].padbt, drawcol_cb, &dc, desc);
-    
+
     draw_bg(column,dc.curline - dc.scrollback + 1);
     //int curcol = (dc.curline - dc.scrollback);
     doupdate();
