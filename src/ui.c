@@ -104,20 +104,6 @@ WINDOW* render_compose_pad(char* text, struct t_tweet* respond_to, int acct_id, 
 
 //----------------------------------------------------------- CODE
 
-/*int pad_insert(struct tweetbox* pad){
-
-  return ht_insert(padht,pad->id,pad);
-
-  }
-
-  int pad_delete(uint64_t id){
-  struct tweetbox* old = (struct tweetbox*)ht_search(padht,id);
-  int r = ht_delete(padht,id);
-  if (old != NULL) { delwin(old->window); free(old); }
-  return r;
-
-  }*/
-
 int findcolwidth(int minwidth) {
 
     int c = (COLS / minwidth);
@@ -128,25 +114,6 @@ int findcolwidth(int minwidth) {
 
     return (COLS / c);
 }
-
-/*struct tweetbox* pad_search_acct(int acct_id, uint64_t id){
-
-  int n=0; struct tweetbox* pad = NULL;
-  do {
-  pad = pad_search_ind(id,n);
-  if (pad->acct_id == acct_id) return pad; else n++;}
-  while (pad != NULL);
-
-  return NULL;
-  }
-  struct tweetbox* pad_search_ind(uint64_t id, int index){
-  return (struct tweetbox*)ht_search_ind(padht,id,index);
-  }
-  struct tweetbox* pad_search(uint64_t id){
-  return pad_search_ind(id,0);
-  }*/
-
-//--- scrollto functions. scroll to row or tweet IDs.
 
 struct scrollto_ctx {
     int topline;
