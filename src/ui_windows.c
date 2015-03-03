@@ -127,7 +127,7 @@ int menu(const char* message, enum msgboxclass class, int choices_n, char** choi
     int maxwidth = 0;
     
     for (int i=0; i < choices_n; i++) {
-	int itemwidth = 1 + utf8_count_chars(choice_id[i]) + 1 + utf8_count_chars(choice_desc[i]);
+	int itemwidth = 1 + utf8_count_chars(choice_id[i]) + (choice_desc ? (1 + utf8_count_chars(choice_desc[i])) : 0);
 	if (itemwidth > maxwidth) maxwidth = itemwidth;
     }	
 
@@ -143,7 +143,7 @@ int menu(const char* message, enum msgboxclass class, int choices_n, char** choi
     m_items = malloc(sizeof(ITEM*) * (choices_n + 1));
 
     for (int i=0; i < choices_n; i++) {
-	m_items[i] = new_item(choice_id[i],choice_desc[i]);
+	m_items[i] = new_item(choice_id[i],(choice_desc ? choice_desc[i] : NULL));
     }
 
     m_items[choices_n] = NULL;

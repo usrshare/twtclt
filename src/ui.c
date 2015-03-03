@@ -260,6 +260,20 @@ struct t_account* get_account(int col) {
 
 #define min(x,y) ( (x) < (y) ? (x) : (y) )
 
+struct t_account* accounts_menu(int allow_cancel) {
+
+   int items = (allow_cancel ? acct_n + 1 : acct_n);
+
+   char* a_id[items];
+
+   for (int i=0; i < acct_n; i++) a_id[i] = acctlist[i]->name;
+   if (allow_cancel) a_id[acct_n] = "Cancel";
+
+   int r = menu("Select an account:",msg_info,items,a_id,NULL); 
+
+   if (r < acct_n) return acctlist[r]; else return NULL;
+}
+
 int draw_column_headers() {
     for (int i=leftmostcol; i < min(leftmostcol + visiblecolumns,MAXCOLUMNS); i++) {
 
@@ -586,14 +600,6 @@ void* uithreadfunc(void* param) {
 			  break; }
 	    case 'm': {
 
-			  char* r_ids[] = {"arc","bar","cav","hea","kni","mon","pri","rog","ran","sam","tou","val","wiz"};
-			  char* r_desc[] = {"Archaeologist","Barbarian","Caveman/Cavewoman","Healer","Knight","Monk","Priest(ess)","Rogue","Ranger","Samurai","Tourist","Valkyrie","Wizard"};
-
-			  int q = menu("Pick a role for your character.",msg_info,13,r_ids,r_desc);
-			  char lol[64];
-			  sprintf(lol,"Option %d picked.",q);
-			  msgbox(lol,msg_warning,0,NULL);
-
 			  break; }
 	    case 'r':
 		      // Load timeline. Tweets will be added.
@@ -888,7 +894,8 @@ int compose(int column, char* textbox, size_t maxchars, size_t maxbytes) {
 	    switch(wch) {
 		case 1:	
 		case 21: { //CTRL+a, CTRL+u
-		    msgbox("TODO: select account\n",msg_warning,0,NULL);
+		    struct t_account* acct = accounts_menu(1);
+		    if (acct) cpad->acct = acct;
 		    break; }
 		case 20:   //CTRL+t
 		case 23: { //CTRL+w, write tweet
