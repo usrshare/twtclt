@@ -571,14 +571,14 @@ void* uithreadfunc(void* param) {
 	    case 'a': {
 			  ui_addAccount();
 			  break; }
-/*	    case 'i': {
+	    case 'z': {
 			  // Load timeline. Tweets will be added.
 			  char test[11];
 			  int r = inputbox_utf8("Test?",msg_info,test,8,10);
 			  if (r == 0) msgbox(test,msg_error,0,NULL);
 			  draw_all_columns();
-			  break; } */
-	    case 'm': 
+			  break; }
+	    case 'm': {
 			  // Load timeline. Tweets will be added.
 			  int r = msgbox("Lol.",msg_info,2,okcanc);
 			  if (r) msgbox("Option 2?",msg_error,0,NULL);
