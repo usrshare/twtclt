@@ -578,11 +578,22 @@ void* uithreadfunc(void* param) {
 			  if (r == 0) msgbox(test,msg_error,0,NULL);
 			  draw_all_columns();
 			  break; }
-	    case 'm': {
+	    case 'b': {
 			  // Load timeline. Tweets will be added.
 			  int r = msgbox("Lol.",msg_info,2,okcanc);
 			  if (r) msgbox("Option 2?",msg_error,0,NULL);
 			  draw_all_columns();
+			  break; }
+	    case 'm': {
+
+			  char* r_ids[] = {"arc","bar","cav","hea","kni","mon","pri","rog","ran","sam","tou","val","wiz"};
+			  char* r_desc[] = {"Archaeologist","Barbarian","Caveman/Cavewoman","Healer","Knight","Monk","Priest(ess)","Rogue","Ranger","Samurai","Tourist","Valkyrie","Wizard"};
+
+			  int q = menu("Pick a role for your character.",msg_info,13,r_ids,r_desc);
+			  char lol[64];
+			  sprintf(lol,"Option %d picked.",q);
+			  msgbox(lol,msg_warning,0,NULL);
+
 			  break; }
 	    case 'r':
 		      // Load timeline. Tweets will be added.

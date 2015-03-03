@@ -122,7 +122,101 @@ int menu(const char* message, enum msgboxclass class, int choices_n, char** choi
 
     //TODO show and handle buttons.
 
-    return 0;
+    int maxheight = (choices_n);
+
+    int maxwidth = 0;
+    
+    for (int i=0; i < choices_n; i++) {
+	int itemwidth = 1 + utf8_count_chars(choice_id[i]) + 1 + utf8_count_chars(choice_desc[i]);
+	if (itemwidth > maxwidth) maxwidth = itemwidth;
+    }	
+
+    WINDOW *msgwin, *textwin, *cntwin;
+
+    msg_window(message, class, &maxheight, &maxwidth, &msgwin, &textwin, &cntwin, C_ALIGN_RIGHT);
+
+    touchwin(msgwin);
+
+    MENU *item_menu;
+    ITEM **m_items;
+
+    m_items = malloc(sizeof(ITEM*) * (choices_n + 1));
+
+    for (int i=0; i < choices_n; i++) {
+	m_items[i] = new_item(choice_id[i],choice_desc[i]);
+    }
+
+    m_items[choices_n] = NULL;
+
+    item_menu = new_menu(m_items);
+
+    set_menu_win(item_menu,msgwin);
+    set_menu_sub(item_menu,cntwin);
+
+    post_menu(item_menu);
+    wrefresh(msgwin);
+
+    int selectloop = 1;
+
+    keypad(msgwin,1);
+
+    while (selectloop) {
+
+	wrefresh(msgwin);
+
+	wmove(msgwin,0,0);
+	int k = wgetch(msgwin); 
+
+	switch(k) {
+	    case 'j':
+	    case '\t':
+	    case KEY_DOWN:
+		menu_driver(item_menu,REQ_DOWN_ITEM);
+		break;
+	    case 'k':
+	    case KEY_UP:
+		menu_driver(item_menu,REQ_UP_ITEM);
+		break;
+	    case KEY_NPAGE:
+		menu_driver(item_menu,REQ_SCR_DPAGE);
+		break;
+	    case KEY_PPAGE:
+		menu_driver(item_menu,REQ_SCR_UPAGE);
+		break;
+	    case 32:
+	    case KEY_ENTER:
+	    case '\r':
+	    case '\n':
+		selectloop=0;
+		break;
+	}
+	wrefresh(msgwin);
+    }
+
+    ITEM* ci = current_item(item_menu);
+    int ii = item_index(ci);
+
+    unpost_menu(item_menu);
+    free_menu(item_menu);
+
+    for (int i=0; i<choices_n; i++) {
+	free_item(m_items[i]);
+    }
+
+    free(m_items);
+
+    delwin(cntwin);
+    delwin(textwin);
+    delwin(msgwin);
+
+    touchwin(colarea);
+    wrefresh(colarea);
+
+    draw_all_columns();
+
+    return ii;
+
+
 }
 
 int inputbox_utf8(const char* message, enum msgboxclass class, char* textfield, size_t maxchars, size_t maxbytes) {
@@ -212,8 +306,6 @@ int inputbox(const char* message, enum msgboxclass class, char* textfield, size_
 }
 
 int msgbox(char* message, enum msgboxclass class, int buttons_n, char** btntext) {
-
-    //TODO show and handle buttons.
 
     int maxbtnwidth = (buttons_n - 1);
 

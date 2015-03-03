@@ -38,7 +38,7 @@ pkg_check_modules(NCURSESW "panel ncursesw" REQUIRED)
 
 include_directories(${NCURSESW_INCLUDE_DIRS})
 
-target_link_libraries(twtclt ncursesw curl oauth json-c pthread libmojibake)
+target_link_libraries(twtclt menu ncursesw curl oauth json-c pthread libmojibake)
 
 install(TARGETS twtclt
 	RUNTIME DESTINATION bin
