@@ -7,7 +7,12 @@ An attempt at writing a twitter client in C.
 
 You should first find **libcurl**, **liboauth** and **libjson-c** in your distribution's repositories. These libraries are definitely available on Debian and Arch Linux.
 
-However, **libmojibake** has to be compiled manually. Before compiling **twtclt**, compile **libmojibake**: 
+However, **libmojibake** has to be compiled manually. First, it must be initialized:
+
+    $ git submodules init
+    $ git submodules update
+
+After that, you can compile **libmojibake**.
 
     $ cd libmojibake
     $ make

@@ -67,7 +67,8 @@ struct t_colpad { //column pad
     uint32_t pad_id; //pad ID, used for hashtable & sorting.
     uint64_t cnt_id; //content (tweet / user / etc. id)
     struct t_ui_timeline** tl; //timeline used
-    int acct_id; //account id
+    struct t_account* acct;
+    //int acct_id; //account id
     WINDOW* window; //pad's associated window
     int lines; //pad's height
 };
@@ -100,7 +101,7 @@ void draw_column2(int column, int scrollback, int do_update);
 void draw_column(int column, int scrollback);
 
 void render_timeline(struct btree* timeline, struct btree* padbt);
-WINDOW* render_compose_pad(char* text, struct t_tweet* respond_to, int acct_id, int* linecount, int selected, int cursor);
+WINDOW* render_compose_pad(char* text, struct t_tweet* respond_to, struct t_account* acct, int* linecount, int selected, int cursor);
 
 //----------------------------------------------------------- CODE
 
@@ -236,6 +237,22 @@ int get_tweet_line(int col, uint64_t twtid) {
     int r = ((sts.res_tl) + (sts.res_ln / 2) + 1);
 
     lprintf("get_tweet_line returned %d\n",r);
+    return r;
+}
+
+struct t_account* get_account(int col) {
+    //returns account associated with column's timeline(s).
+    //if multiple accounts are, returns NULL.
+
+    struct t_column* c = &(cols[col]); if (c == NULL) return NULL;
+    struct t_account* r = NULL;
+
+    for (int i = 0; i < c->tl_c; i++) {
+	if (c->tl[i]->acct != r) {
+	    if (r == NULL) r = (c->tl[i]->acct); else return NULL;
+	}
+    }
+
     return r;
 }
 
@@ -802,7 +819,7 @@ void rendertwt_cb(uint64_t id, void* data, void* ctx) {
 
 	struct t_colpad* newpad = malloc(sizeof(struct t_colpad));
 
-	newpad->acct_id = 0;
+	newpad->acct = NULL;
 	newpad->pt = CP_TWEET;
 	newpad->cnt_id = id;
 	newpad->read = 0;
@@ -828,7 +845,7 @@ int compose(int column, char* textbox, size_t maxchars, size_t maxbytes) {
 
     struct t_colpad* cpad = malloc(sizeof(struct t_colpad));
 
-    cpad->pt = CP_COMPOSE; cpad->read = 1; cpad->pad_id = 0xFFFFFFFF; cpad->cnt_id = UINT64_MAX; cpad->tl = NULL; cpad->acct_id = 0;
+    cpad->pt = CP_COMPOSE; cpad->read = 1; cpad->pad_id = 0xFFFFFFFF; cpad->cnt_id = UINT64_MAX; cpad->tl = NULL; cpad->acct = get_account(column);
     int composing = 1, cwlines = 0, ocwlines = 0; //compose window lines
 
     WINDOW* composepad = NULL, *ocp = NULL;
@@ -839,7 +856,7 @@ int compose(int column, char* textbox, size_t maxchars, size_t maxbytes) {
 
     wint_t wch;
 
-    composepad = render_compose_pad(textbox, NULL, cpad->acct_id, &cwlines, 1, curpos);
+    composepad = render_compose_pad(textbox, NULL, cpad->acct, &cwlines, 1, curpos);
     cpad->lines = cwlines;
     cpad->window = composepad;
     draw_column(column,0);
@@ -862,19 +879,19 @@ int compose(int column, char* textbox, size_t maxchars, size_t maxbytes) {
 		    msgbox("TODO: select account\n",msg_warning,0,NULL);
 		    break; }
 		case 23: { //write tweet
-		    uint64_t tid = update_status(acctlist[cpad->acct_id], textbox, 0);
+		    uint64_t tid = update_status(cpad->acct, textbox, 0);
 		    if (tid) composing = 0; else msgbox ("Some error happened while sending this tweet.\n",msg_error,0,NULL);
 		    break; }
 		case 27: //escape
 		    composing = 0;
 		    break;
 		case 127: { //backspace
-			      int r = utf8_delete_char(textbox,maxchars,curpos-1);
+			      int r = utf8_delete_char((uint8_t*)textbox,maxchars,curpos-1);
 			      curpos--; if (curpos <0) {curpos = 0; beep();}
 			      if (r == 1) beep();	
 			      break; }
 		default: {
-			     int r = utf8_insert_char(textbox,maxbytes,curpos,wch);
+			     int r = utf8_insert_char((uint8_t*)textbox,maxbytes,curpos,wch);
 			     curpos++; if (curpos > utf8_count_chars(textbox)) {curpos = utf8_count_chars(textbox); beep();}
 			     if (r == 1) beep();
 			     break; }
@@ -890,7 +907,7 @@ int compose(int column, char* textbox, size_t maxchars, size_t maxbytes) {
 				    curpos++; if (curpos > utf8_count_chars(textbox)) {curpos = utf8_count_chars(textbox); beep();} break; }
 
 		case KEY_DC: {
-				 int r = utf8_delete_char(textbox,maxchars,curpos);
+				 int r = utf8_delete_char((uint8_t*)textbox,maxchars,curpos);
 				 if (curpos > utf8_count_chars(textbox)) {curpos = utf8_count_chars(textbox);}
 				 if (r == 1) beep();
 				 break; }
@@ -907,7 +924,7 @@ int compose(int column, char* textbox, size_t maxchars, size_t maxbytes) {
 
 	ocp = composepad;
 
-	composepad = render_compose_pad(textbox, NULL, cpad->acct_id, &cwlines, 1, curpos);
+	composepad = render_compose_pad(textbox, NULL, cpad->acct, &cwlines, 1, curpos);
 	cpad->lines = cwlines;
 
 	cpad->window = composepad;
@@ -1056,17 +1073,6 @@ uint64_t unique_id (struct btree* timeline, uint64_t id) {
     return id;    
 }
 
-void draw_column_limit(int column, int scrollback, int topline, int lines) {
-    //btree should contain tweet IDs.
-
-    struct drawcol_ctx dc = { .curline=0, .column=column, .row=0, .scrollback=scrollback, .topline=topline, .lines=lines};
-    bt_read(cols[column].padbt, drawcol_cb, &dc, desc);
-    
-    draw_bg(column,dc.curline - dc.scrollback + 1);
-    //int curcol = (dc.curline - dc.scrollback);
-    doupdate();
-} 
-
 void draw_bg(int column, int startline) {
 
     if ((column - leftmostcol) < 0) return;
@@ -1080,6 +1086,17 @@ void draw_bg(int column, int startline) {
     }
     doupdate();
 }
+
+void draw_column_limit(int column, int scrollback, int topline, int lines) {
+    //btree should contain tweet IDs.
+
+    struct drawcol_ctx dc = { .curline=0, .column=column, .row=0, .scrollback=scrollback, .topline=topline, .lines=lines};
+    bt_read(cols[column].padbt, drawcol_cb, &dc, desc);
+    
+    draw_bg(column,dc.curline - dc.scrollback + 1);
+    //int curcol = (dc.curline - dc.scrollback);
+    doupdate();
+} 
 
 void draw_column2(int column, int scrollback, int do_update) {
     //btree should contain tweet IDs.
@@ -1116,7 +1133,9 @@ void draw_column(int column, int scrollback) {
     draw_column2(column,scrollback,1);
 }
 
-WINDOW* render_compose_pad(char* text, struct t_tweet* respond_to, int acct_id, int* linecount, int selected, int cursor) {
+WINDOW* render_compose_pad(char* text, struct t_tweet* respond_to, struct t_account* acct, int* linecount, int selected, int cursor) {
+
+    if (acct == NULL) acct = def_acct(NULL);
 
     if (respond_to != NULL) {
 
@@ -1162,7 +1181,7 @@ WINDOW* render_compose_pad(char* text, struct t_tweet* respond_to, int acct_id, 
     wattron(tp,bkgtype);
 
     if (COLORS > 16) wattron(tp,A_BOLD);
-    mvwprintw(tp,1,1,"@%s:",acctlist[acct_id]->name);
+    mvwprintw(tp,1,1,"@%s:",acct->name);
     if (COLORS > 16) wattroff(tp,A_BOLD);
 
     WINDOW* textpad = subpad(tp,textlines,colwidth-1,3,1);
