@@ -675,9 +675,6 @@ void* uithreadfunc(void* param) {
 		      break;
 
 	    case 's': {
-			  int r = msgbox("Streaming is a very experimental feature. Are you sure you want to continue?",msg_warning,2,yesno);
-			  if (r == 0) {
-
 			      struct t_ui_timeline* tl = timelines_menu(cols[cur_col],1,"Please select a timeline to enable/disable streaming for.");
 			      if (tl != NULL) {
 
@@ -689,11 +686,11 @@ void* uithreadfunc(void* param) {
 				      sc->tl = tl;
 
 				      tl->stream = startstreaming(tl->bt,tl->acct,tl->tt,uistreamcb,sc); } else {
-
-					  //disable streaming on this timeline
+					  stopstreaming(tl->stream);
+					  tl->stream = 0;
 
 				      }
-			      }}
+			      }
 			  draw_all_columns();
 			  break; }
 	    case 'i':

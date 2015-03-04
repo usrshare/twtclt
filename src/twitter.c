@@ -280,6 +280,7 @@ size_t streamcb(char *ptr, size_t size, size_t nmemb, void *userdata) {
 struct _stream_handle {
     pthread_t streamthread;
     int stop;
+    struct streamcb_ctx* ctx;
 };
 
 void* startstreaming_tfunc(void* param) {
@@ -308,6 +309,8 @@ streamhnd startstreaming(struct btree* timeline, struct t_account* acct, enum ti
 
     struct streamcb_ctx* ctx = malloc(sizeof(struct streamcb_ctx));
 
+    hnd->ctx = ctx;
+
     ctx->timeline = timeline; ctx->acct=acct; ctx->tt = tt;
     ctx->buffer = NULL; ctx->buffersz = 0; ctx->cb = cb; ctx->cbctx = cbctx; ctx->stop = &(hnd->stop);
 
@@ -317,6 +320,10 @@ streamhnd startstreaming(struct btree* timeline, struct t_account* acct, enum ti
     return hnd;
 }
 int stopstreaming(streamhnd str) {
-
+    pthread_cancel(str->streamthread);
+    pthread_join(str->streamthread,NULL);
+    
+    free(str->ctx);
+    free(str);
     return 0;
 }
