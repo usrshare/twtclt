@@ -33,8 +33,6 @@ short gray1; //roughly equiv to #888888
 #define CP_TWTBG COLOR_PAIR(1)
 #define CP_BARS COLOR_PAIR(2)
 #define CP_CARD COLOR_PAIR(3)
-#define CP_RT COLOR_PAIR(4)
-#define CP_FAV COLOR_PAIR(5)
 #define CP_MENT COLOR_PAIR(6)
 #define CP_GRAY COLOR_PAIR(7)
 #define CP_CARDSEL COLOR_PAIR(8)
@@ -45,6 +43,10 @@ short gray1; //roughly equiv to #888888
 #define CP_GRAYSEL COLOR_PAIR(16)
 #define CP_COMPBG1 COLOR_PAIR(17)
 #define CP_COMPSEL COLOR_PAIR(18)
+#define CP_RT COLOR_PAIR(19)
+#define CP_RTSEL COLOR_PAIR(20)
+#define CP_FAV COLOR_PAIR(21)
+#define CP_FAVSEL COLOR_PAIR(22)
 //end color pairs
 
 #endif
