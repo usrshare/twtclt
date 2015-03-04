@@ -112,22 +112,14 @@ int msg_window(const char* message, enum msgboxclass class, int* height, int* wi
     return 0;
 }
 
-int menu(const char* message, enum msgboxclass class, int choices_n, char** choice_id, char** choice_desc) {
-
-    ITEM **menuitems;
-    int c;
-    MENU *thismenu;
-    int i;
-    ITEM *cur_item;
-
-    //TODO show and handle buttons.
+uint64_t menu(const char* message, enum msgboxclass class, int choices_n, struct menuitem* choices) {
 
     int maxheight = (choices_n);
 
     int maxwidth = 0;
     
     for (int i=0; i < choices_n; i++) {
-	int itemwidth = 1 + utf8_count_chars(choice_id[i]) + (choice_desc ? (1 + utf8_count_chars(choice_desc[i])) : 0);
+	int itemwidth = 1 + utf8_count_chars(choices[i].name) + (choices[i].desc ? (1 + utf8_count_chars(choices[i].desc)) : 0);
 	if (itemwidth > maxwidth) maxwidth = itemwidth;
     }	
 
@@ -143,7 +135,8 @@ int menu(const char* message, enum msgboxclass class, int choices_n, char** choi
     m_items = malloc(sizeof(ITEM*) * (choices_n + 1));
 
     for (int i=0; i < choices_n; i++) {
-	m_items[i] = new_item(choice_id[i],(choice_desc ? choice_desc[i] : NULL));
+	m_items[i] = new_item(choices[i].name,choices[i].desc);
+	if (choices[i].disabled) item_opts_off(m_items[i],O_SELECTABLE);
     }
 
     m_items[choices_n] = NULL;
@@ -186,9 +179,12 @@ int menu(const char* message, enum msgboxclass class, int choices_n, char** choi
 	    case 32:
 	    case KEY_ENTER:
 	    case '\r':
-	    case '\n':
-		selectloop=0;
-		break;
+	    case '\n': {
+		ITEM* ci = current_item(item_menu);
+		int ii = item_index(ci);
+
+		if (choices[ii].disabled) beep(); else selectloop=0;
+		break; }
 	}
 	wrefresh(msgwin);
     }
@@ -214,7 +210,7 @@ int menu(const char* message, enum msgboxclass class, int choices_n, char** choi
 
     draw_all_columns();
 
-    return ii;
+    return choices[ii].id;
 
 
 }

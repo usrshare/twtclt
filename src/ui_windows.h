@@ -11,6 +11,13 @@ enum msgboxclass {
     msg_critical, //red borders, darken background?
 };
 
+struct menuitem {
+    uint64_t id;
+    char* name;
+    char* desc;
+    int disabled;
+};
+
 WINDOW* titlebar; //top line
 WINDOW* colhdrs; //second line
 
@@ -19,7 +26,7 @@ WINDOW* colarea; //everything else
 WINDOW* statusbar; //bottom line
 WINDOW* inputbar; //bottom right space
 
-int menu(const char* message, enum msgboxclass class, int choices_n, char** choice_id, char** choice_desc);
+uint64_t menu(const char* message, enum msgboxclass class, int choices_n, struct menuitem* choices);
 int inputbox(const char* message, enum msgboxclass class, char* textfield, size_t textsize);
 int inputbox_utf8(const char* message, enum msgboxclass class, char* textfield, size_t maxchars, size_t maxbytes);
 int msgbox(char* message, enum msgboxclass class, int buttons_n, char** btntext);

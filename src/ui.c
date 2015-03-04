@@ -231,14 +231,16 @@ struct t_account* accounts_menu(int allow_cancel) {
 
     int items = (allow_cancel ? acct_n + 1 : acct_n);
 
-    char* a_id[items];
+    struct menuitem acctmenu[items];
 
-    for (int i=0; i < acct_n; i++) a_id[i] = acctlist[i]->name;
-    if (allow_cancel) a_id[acct_n] = "Cancel";
+    for (int i=0; i < acct_n; i++) 
+	acctmenu[i] = (struct menuitem){.id = i, .name = acctlist[i]->name};
 
-    int r = menu("Select an account:",msg_info,items,a_id,NULL); 
+    if (allow_cancel) acctmenu[acct_n] = (struct menuitem){.id = UINT64_MAX, .name = "Cancel"};
 
-    if (r < acct_n) return acctlist[r]; else return NULL;
+    uint64_t r = menu("Select an account:",msg_info,items,acctmenu); 
+
+    if (r != UINT64_MAX) return acctlist[r]; else return NULL;
 }
 
 int draw_column_headers() {
@@ -455,6 +457,39 @@ draw_column2(ctx->colnum,cols[ctx->colnum].scrollback,1);
 }
  */
 
+struct menuitem optionItems[] = {
+
+    {   1,"Accounts...","Add, delete and manage your Twitter accounts.",0},
+    {   2,"Columns...","Add, delete and manage your columns and timelines.",0},
+    {   0,"---","",1},
+    {   7,"About","Information about twtclt.",0},
+
+};
+
+char* twtclt_about = \
+
+    "twtclt - a curses-based Twitter client\n"
+    "(c) 2014-2015 usr_share and twtclt contributors\n"
+    "(http://github.com/usrshare/twtclt/)\n"
+    "\n";
+
+
+int ui_optionsScreen() { 
+    uint64_t r = menu("twtclt Option Menu",msg_info,sizeof(optionItems) / sizeof(*optionItems),optionItems);
+
+    switch(r) {
+	case 1:
+	case 2:
+	    msgbox("This menu item has not been implemented yet.",msg_warning,0,0);
+	    break;
+
+	case 7:
+	    msgbox(twtclt_about,msg_info,0,0);
+	    break;
+    }
+    return 0;
+}
+
 void* uithreadfunc(void* param) {
     // -- test.
 
@@ -549,6 +584,9 @@ void* uithreadfunc(void* param) {
 			     scrolltotwt(cur_col,curtwtid);
 			     draw_all_columns(); }
 			 break;
+	    case 'o': {
+			  ui_optionsScreen();
+			  break; }
 	    case 'a': {
 			  ui_addAccount();
 			  break; }
