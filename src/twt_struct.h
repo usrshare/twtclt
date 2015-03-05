@@ -19,6 +19,7 @@ enum timelinetype {
     mentions,
     direct_messages,
     search,
+    list,
 };
 struct t_entity {
     enum entitytype type; //entity type
