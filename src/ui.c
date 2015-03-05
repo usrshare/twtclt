@@ -739,6 +739,9 @@ int load_columns(FILE* file) {
 
     int i=0, tli=0;
 
+    for (int i=0; i < MAXCOLUMNS; i++) {
+	cols[i] = &(_cols[i]); _cols[i].enabled = 0; }
+
     while ( (i < MAXCOLUMNS) && (!feof(file)) ) {
 
 	int c_enabled, tl_c;
