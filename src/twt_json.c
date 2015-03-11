@@ -223,13 +223,13 @@ int fill_json_tweet_fields(struct t_tweet* nt, enum json_type ft, const char* fn
     if (s_eq(fn,"in_reply_to_user_id")) { nt->in_reply_to_user_id = json_object_get_int64(fv); return 0;}
     if (s_eq(fn,"in_reply_to_user_id_str")) { return 0;}
     if (s_eq(fn,"in_reply_to_screen_name")) { if(ft) strncpy(nt->in_reply_to_screen_name,json_object_get_string(fv),16); return 0;}
-    if (s_eq(fn,"user")) { nt->user_id = parse_json_user(fv,1); return 0;}
+    if (s_eq(fn,"user")) { nt->user_id = parse_json_user(fv,1,nt->acct); return 0;}
     if (s_eq(fn,"truncated")) { nt->truncated = json_object_get_boolean(fv); return 0;}
     if (s_eq(fn,"favorited")) { nt->favorited = json_object_get_boolean(fv); return 0;}
     if (s_eq(fn,"retweeted")) { nt->retweeted = json_object_get_boolean(fv); return 0;}
     if (s_eq(fn,"favorite_count")) { nt->favorite_count = json_object_get_int64(fv); return 0;}
     if (s_eq(fn,"retweet_count")) { nt->retweet_count = json_object_get_int64(fv); return 0;}
-    if (s_eq(fn,"retweeted_status")) { nt->retweeted_status_id = parse_json_tweet(fv,1); return 0;}
+    if (s_eq(fn,"retweeted_status")) { nt->retweeted_status_id = parse_json_tweet(fv,1,nt->acct); return 0;}
     if (s_eq(fn,"possibly_sensitive")) { nt->possibly_sensitive = json_object_get_nullbool(fv); return 0;}
 
     if (s_eq(fn,"text")) { nt->text = strdup(json_object_get_string(fv)); return 0;}
@@ -247,7 +247,7 @@ int fill_json_tweet_fields(struct t_tweet* nt, enum json_type ft, const char* fn
     return 1;
 }
 
-uint64_t parse_json_user(json_object* user, int perspectival) {
+uint64_t parse_json_user(json_object* user, int perspectival, struct t_account* acct) {
     //returns the user ID of the twitter user. also probably adds the user struct to the hash table or something.
     struct json_object_iterator it_c, it_e;
     it_c = json_object_iter_begin(user);
@@ -269,6 +269,7 @@ uint64_t parse_json_user(json_object* user, int perspectival) {
 
     }
 
+    nu.acct = acct;
     nu.perspectival = perspectival;
     nu.retrieved_on = time(NULL); 
 
@@ -281,7 +282,7 @@ uint64_t parse_json_user(json_object* user, int perspectival) {
 
     return nu.id;
 }
-uint64_t parse_json_tweet(json_object* tweet, int perspectival) {
+uint64_t parse_json_tweet(json_object* tweet, int perspectival, struct t_account* acct) {
     struct json_object_iterator it_c, it_e;
     it_c = json_object_iter_begin(tweet);
     it_e = json_object_iter_end(tweet);
@@ -304,6 +305,7 @@ uint64_t parse_json_tweet(json_object* tweet, int perspectival) {
 
     }
 
+    nt.acct = acct;
     nt.perspectival = perspectival;
     nt.retrieved_on = time(NULL); 
 
@@ -313,7 +315,7 @@ uint64_t parse_json_tweet(json_object* tweet, int perspectival) {
     return nt.id;
 }
 
-int parse_timeline(struct btree* timeline, enum timelinetype tt, char* timelinereply) {
+int parse_timeline(struct btree* timeline, enum timelinetype tt, char* timelinereply, struct t_account* acct) {
 
     struct json_tokener* jt = json_tokener_new();
     enum json_tokener_error jerr;
@@ -332,7 +334,7 @@ int parse_timeline(struct btree* timeline, enum timelinetype tt, char* timeliner
 
     for (int i=0; i<tla_len; i++) {
 	json_object* tweet = json_object_array_get_idx(timelineobj,i);
-	uint64_t tweet_id = parse_json_tweet(tweet,0);
+	uint64_t tweet_id = parse_json_tweet(tweet,0,acct);
 	//printf("Adding tweet %lld to timeline...\n",tweet_id);
 	bt_insert(timeline,tweet_id,NULL);
     }
@@ -340,7 +342,7 @@ int parse_timeline(struct btree* timeline, enum timelinetype tt, char* timeliner
     json_tokener_free(jt);
     return 0;
 }
-uint64_t parse_single_tweet(char* timelinereply) {
+uint64_t parse_single_tweet(char* timelinereply, struct t_account* acct) {
 
     struct json_tokener* jt = json_tokener_new();
     enum json_tokener_error jerr;
@@ -356,11 +358,11 @@ uint64_t parse_single_tweet(char* timelinereply) {
 	lprintf("full reply:%s\n",timelinereply);
 	return 1; }
 
-    uint64_t tweet_id = parse_json_tweet(tweet,0);
+    uint64_t tweet_id = parse_json_tweet(tweet,0,acct);
     json_tokener_free(jt);
     return tweet_id;
 }
-uint64_t parse_single_user(char* timelinereply) {
+uint64_t parse_single_user(char* timelinereply, struct t_account* acct) {
 
     struct json_tokener* jt = json_tokener_new();
     enum json_tokener_error jerr;
@@ -376,12 +378,12 @@ uint64_t parse_single_user(char* timelinereply) {
 	lprintf("full reply:%s\n",timelinereply);
 	return 1; }
 
-    uint64_t user_id = parse_json_user(user,0);
+    uint64_t user_id = parse_json_user(user,0,acct);
     json_tokener_free(jt);
     return user_id;
 }
 
-uint64_t parsestreamingmsg(char *msg, size_t msgsize) {
+uint64_t parsestreamingmsg(struct t_account* acct, char *msg, size_t msgsize) {
 
     struct json_tokener* jt = json_tokener_new();
 
@@ -429,7 +431,7 @@ uint64_t parsestreamingmsg(char *msg, size_t msgsize) {
     free((void*)fn);
 
     if (parse_as_tweet) {
-	uint64_t tweet_id = parse_json_tweet(streamobj,0);
+	uint64_t tweet_id = parse_json_tweet(streamobj,0,acct);
 	return tweet_id;
     }
 

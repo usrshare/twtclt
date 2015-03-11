@@ -1,3 +1,4 @@
+// vim: cin:sts=4:sw=4 
 #ifndef TWT_OAUTH_H
 #define TWT_OAUTH_H
 

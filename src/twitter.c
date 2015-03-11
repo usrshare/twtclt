@@ -26,6 +26,7 @@ const char twt_usertl_url[] = "https://api.twitter.com/1.1/statuses/user_timelin
 const char twt_menttl_url[] = "https://api.twitter.com/1.1/statuses/mentions_timeline.json";
 const char twt_search_url[] = "https://api.twitter.com/1.1/search/tweets.json";
 const char twt_dirmsg_url[] = "https://api.twitter.com/1.1/direct_messages.json";
+const char twt_listtl_url[] = "https://api.twitter.com/1.1/lists/statuses.json"; //list timeline
 const char twt_status_url[] = "https://api.twitter.com/1.1/statuses/show.json"; //load single tweet
 const char twt_user_url[] =   "https://api.twitter.com/1.1/users/show.json"; //load single user
 const char twt_usrstr_url[] = "https://userstream.twitter.com/1.1/user.json"; //user streams
@@ -46,6 +47,79 @@ int inithashtables(){
     return 0;
 }
 
+int load_timeline_base(struct btree* timeline, enum timelinetype tt, struct t_account* acct, const char* baseurl, tl_loaded_cb cb, void* cbctx) {
+
+    char* req_url = NULL;
+    char* reply = NULL;
+
+    //printf("logging in with app_ckey %s, app_csct %s, tkey %s, tsct %s\n",app_ckey, app_csct, acct->tkey, acct->tsct);
+
+    req_url = acct_sign_url2(baseurl, NULL, OA_HMAC, NULL, acct);
+
+    reply = oauth_http_get(req_url,NULL);
+
+    if (req_url) free(req_url);
+
+    if (!reply) return 1;
+
+    lprintf("Received a reply.\n");
+
+    parse_timeline(timeline, tt, reply, acct);
+
+    if (cb) cb(0,0,cbctx);
+
+    free(reply);
+    return 0;
+
+}
+
+int load_timeline2(struct btree* timeline, struct t_account* acct, struct timeline_params param, tl_loaded_cb cb, void* cbctx) {
+
+    char *baseurl = NULL;
+
+    switch(param.tt) {
+	case home:
+	    baseurl = strdup(twt_hometl_url);
+	    break;
+	case user:
+	    baseurl = strdup(twt_usertl_url);
+	    if (param.user_id != 0) {
+		baseurl = addparam_int(baseurl,"user_id",param.user_id,1);
+	    } else {
+		if (param.screen_name) baseurl = addparam(baseurl,"screen_name",param.screen_name,1);
+	    }
+	    break;
+	case mentions:
+	    baseurl = strdup(twt_menttl_url);
+	    break;
+	case direct_messages:
+	    baseurl = strdup(twt_dirmsg_url);
+	    break;
+	case search:
+	    baseurl = strdup(twt_dirmsg_url);
+	    if (param.query != NULL) baseurl = addparam(baseurl,"q",param.query,1);
+	    break;
+	case list:
+	    baseurl = strdup(twt_listtl_url);
+	    
+    }
+
+    if (param.since_id) baseurl = addparam_int(baseurl,"since_id",param.since_id,1);
+    if (param.max_id) baseurl = addparam_int(baseurl,"max_id",param.max_id,1);
+    if (param.count) baseurl = addparam_int(baseurl,"count",param.max_id,1);
+
+    if (param.trim_user) baseurl = addparam(baseurl,"trim_user","1",1);
+    if (param.exclude_replies) baseurl = addparam(baseurl,"exclude_replies","1",1);
+    if (param.contributor_details) baseurl = addparam(baseurl,"contributor_details","1",1);
+    if (param.include_entities) baseurl = addparam(baseurl,"include_entities","1",1);
+
+    int r = load_timeline_base(timeline, param.tt, acct, baseurl, cb, cbctx);
+
+    free(baseurl);
+
+    return r;
+}
+/*
 int load_timeline_ext(struct btree* timeline, struct t_account* acct, enum timelinetype tt, uint64_t userid, char* customtype, int since_id, int max_id, int count, int trim_user, int exclude_replies, int contributor_details, int include_entities, tl_loaded_cb cb, void* cbctx) {
 
     char *baseurl = NULL;
@@ -72,6 +146,9 @@ int load_timeline_ext(struct btree* timeline, struct t_account* acct, enum timel
 	    baseurl = strdup(twt_dirmsg_url);
 	    if (customtype != NULL) baseurl = addparam(baseurl,"q",customtype,1);
 	    break;
+	case list:
+	    baseurl = strdup(twt_listtl_url);
+	    
     }
 
     if (since_id) baseurl = addparam_int(baseurl,"since_id",since_id,1);
@@ -83,28 +160,11 @@ int load_timeline_ext(struct btree* timeline, struct t_account* acct, enum timel
     if (contributor_details) baseurl = addparam(baseurl,"contributor_details","1",1);
     if (include_entities) baseurl = addparam(baseurl,"include_entities","1",1);
 
-    char* req_url = NULL;
-    char* reply = NULL;
+    int r = load_timeline_base(timeline, tt, acct, baseurl, cb, cbctx);
 
-    //printf("logging in with app_ckey %s, app_csct %s, tkey %s, tsct %s\n",app_ckey, app_csct, acct->tkey, acct->tsct);
-
-    req_url = acct_sign_url2(baseurl, NULL, OA_HMAC, NULL, acct);
-
-    reply = oauth_http_get(req_url,NULL);
-
-    if (req_url) free(req_url);
-
-    if (!reply) return 1;
-
-    lprintf("Received a reply.\n");
-
-    parse_timeline(timeline, tt, reply);
-
-    if (cb) cb(0,0,cbctx);
-
-    free(reply);
     free(baseurl);
-    return 0;
+
+    return r;
 }
 int load_timeline(struct btree* timeline, struct t_account* acct, enum timelinetype tt, uint64_t userid, char* customtype, tl_loaded_cb cb, void* cbctx) {
     return load_timeline_ext(timeline,acct,tt,userid,customtype,0,0,0,0,0,0,0,cb,cbctx);
@@ -115,7 +175,7 @@ int load_global_timeline(struct btree* timeline, enum timelinetype tt, uint64_t 
 	    load_timeline(timeline,acctlist[i],tt,userid,customtype,cb,cbctx);
     }
     return 0;    
-}
+}*/
 
 uint64_t update_status(struct t_account* acct, char* status, uint64_t reply_id) {
 
@@ -137,7 +197,7 @@ uint64_t update_status(struct t_account* acct, char* status, uint64_t reply_id) 
 
     lprintf("Received a reply.\n");
     
-    uint64_t resid = parse_single_tweet(reply);
+    uint64_t resid = parse_single_tweet(reply, acct);
     
     if (resid == 0) lprintf("Response is not a tweet. Full response: \n%s\n", reply);
     
@@ -162,7 +222,7 @@ uint64_t load_tweet(struct t_account* acct, uint64_t tweetid) {
 
     lprintf("Received a reply.\n");
 
-    uint64_t resid = parse_single_tweet(reply);
+    uint64_t resid = parse_single_tweet(reply, acct);
 
     free(reply);
     free(baseurl);
@@ -186,7 +246,7 @@ uint64_t load_user(struct t_account* acct, uint64_t userid, char* username) {
 
     lprintf("Received a reply.\n");
 
-    uint64_t resid = parse_single_user(reply);
+    uint64_t resid = parse_single_user(reply, acct);
 
     free(reply);
     free(baseurl);
@@ -254,7 +314,7 @@ size_t streamcb(char *ptr, size_t size, size_t nmemb, void *userdata) {
 	    if (ctx->buffer) { memcpy(msg,ctx->buffer,ctx->buffersz); appendto = ctx->buffersz; }
 	    free(ctx->buffer); ctx->buffer = NULL ; ctx->buffersz = 0;
 	    memcpy(msg,msgstart + appendto,strsize); msg[appendto+strsize] = '\0';
-	    uint64_t tweet_id = parsestreamingmsg(msg,appendto+strsize);
+	    uint64_t tweet_id = parsestreamingmsg(ctx->acct,msg,appendto+strsize);
 	    if (tweet_id != 0) {
 		bt_insert(ctx->timeline,tweet_id,NULL);
 		if (ctx->cb != NULL) ctx->cb(tweet_id,ctx->cbctx);

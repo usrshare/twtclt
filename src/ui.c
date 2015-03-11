@@ -40,10 +40,8 @@ struct drawcol_ctx{
 struct t_ui_timeline {
     int enabled;
     struct t_account* acct;
-    enum timelinetype tt;
-    uint64_t userid;
+    struct timeline_params param;
     struct btree* bt; //timeline btree
-    char* customtype;
     streamhnd stream;
 }; //column settings
 
@@ -265,7 +263,7 @@ int describe_column (struct t_column* col, char* out, size_t maxsize) {
 
 int describe_timeline (struct t_ui_timeline* tl, char* out, size_t maxsize) {
 
-    switch(tl->tt) {
+    switch(tl->param.tt) {
 	case home:
 	    snprintf(out,maxsize,"@%s: Home",tl->acct->name); break;
 	case user:
@@ -275,7 +273,7 @@ int describe_timeline (struct t_ui_timeline* tl, char* out, size_t maxsize) {
 	case direct_messages:
 	    snprintf(out,maxsize,"@%s: Direct messages",tl->acct->name); break;
 	case search:
-	    snprintf(out,maxsize,"@%s: Search for %s",tl->acct->name,tl->customtype); break;
+	    snprintf(out,maxsize,"@%s: Search for %s",tl->acct->name,tl->param.query); break;
     }
 
     if (tl->stream) strcat(out, " (Streaming)");
@@ -371,8 +369,7 @@ int reload_column(int col) {
 	struct loadedcb_ctx* ctx = malloc(sizeof(struct loadedcb_ctx));
 	ctx->tl = tl; ctx->col = cols[col];
 
-	load_timeline(tl->bt,tl->acct,tl->tt,tl->userid,tl->customtype,loaded_cb,ctx);
-
+	load_timeline2(tl->bt, tl->acct, tl->param, loaded_cb, ctx);
     }
     return 0;
 }
@@ -694,7 +691,7 @@ void* uithreadfunc(void* param) {
 				      sc->col = cols[cur_col];
 				      sc->tl = tl;
 
-				      tl->stream = startstreaming(tl->bt,tl->acct,tl->tt,uistreamcb,sc); } else {
+				      tl->stream = startstreaming(tl->bt,tl->acct,tl->param.tt,uistreamcb,sc); } else {
 					  stopstreaming(tl->stream);
 					  tl->stream = 0;
 
@@ -735,7 +732,7 @@ int save_columns(FILE* file) {
 
 	for (int j=0; j < _cols[i].tl_c; j++) {
 	    struct t_ui_timeline* ctl = _cols[i].tl[j];
-	    fprintf(file,"* %d %d %d %" PRIu64 "\n",ctl->enabled,acct_id(ctl->acct),ctl->tt,ctl->userid); }
+	    fprintf(file,"* %d %d %d %" PRIu64 "\n",ctl->enabled,acct_id(ctl->acct),ctl->param.tt,ctl->param.user_id); }
     }
 
     fflush(file);
@@ -772,8 +769,8 @@ int load_columns(FILE* file) {
 
 		tls[tli].enabled = t_enabled;
 		tls[tli].acct = (acct_id != -1 ? acctlist[acct_id] : NULL);
-		tls[tli].tt = tt;
-		tls[tli].userid = userid;
+		tls[tli].param.tt = tt;
+		tls[tli].param.user_id = userid;
 		tls[tli].bt = bt_create();
 
 		tli++;
@@ -805,8 +802,7 @@ void init_columns() {
 
 	tls[0].enabled = 1;
 	tls[0].acct = acctlist[0];
-	tls[0].tt = home;
-	tls[0].customtype = NULL;
+	tls[0].param = (struct timeline_params){.tt = home};
 	tls[0].bt = bt_create();
 	tls[0].stream = NULL;
 
@@ -817,8 +813,7 @@ void init_columns() {
 
 	tls[1].enabled = 1;
 	tls[1].acct = acctlist[0];
-	tls[1].tt = mentions;
-	tls[1].customtype = NULL;
+	tls[1].param = (struct timeline_params){.tt = mentions};
 	tls[1].bt = bt_create();
 	tls[1].stream = NULL;
 
