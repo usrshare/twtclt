@@ -20,6 +20,6 @@ typedef void (*stream_cb) (uint64_t id, void* ctx);
 
 uint64_t parsestreamingmsg(struct t_account* acct, char *msg, size_t msgsize);
 
-int parse_timeline(struct btree* timeline, enum timelinetype tt, char* timelinereply, struct t_account* acct);
+int parse_timeline(struct btree* timeline, char* timelinereply, struct t_account* acct);
 
 #endif

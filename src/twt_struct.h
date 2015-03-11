@@ -37,6 +37,19 @@ struct t_contributor {
     uint64_t id;
     char screen_name[16];
 };
+struct t_direct_message {
+    struct t_account* acct;
+    time_t created_at; //should be time
+    uint64_t id; //DM ID
+    uint64_t sender_id; //DM sender user ID
+    uint64_t recipient_id; //DM recipient user ID
+    char sender_screen_name[16];
+    char recipient_screen_name[16];
+    char* text;
+    int truncated; //do we need that?
+    int perspectival;
+    time_t retrieved_on;
+};
 struct t_tweet {
     struct t_account* acct;
     time_t created_at; //should be time

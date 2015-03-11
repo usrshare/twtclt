@@ -315,7 +315,7 @@ uint64_t parse_json_tweet(json_object* tweet, int perspectival, struct t_account
     return nt.id;
 }
 
-int parse_timeline(struct btree* timeline, enum timelinetype tt, char* timelinereply, struct t_account* acct) {
+int parse_timeline(struct btree* timeline, char* timelinereply, struct t_account* acct) {
 
     struct json_tokener* jt = json_tokener_new();
     enum json_tokener_error jerr;

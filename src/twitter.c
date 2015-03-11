@@ -29,7 +29,8 @@ const char twt_dirmsg_url[] = "https://api.twitter.com/1.1/direct_messages.json"
 const char twt_listtl_url[] = "https://api.twitter.com/1.1/lists/statuses.json"; //list timeline
 const char twt_status_url[] = "https://api.twitter.com/1.1/statuses/show.json"; //load single tweet
 const char twt_user_url[] =   "https://api.twitter.com/1.1/users/show.json"; //load single user
-const char twt_usrstr_url[] = "https://userstream.twitter.com/1.1/user.json"; //user streams
+
+const char twt_stream_usr_url[] = "https://userstream.twitter.com/1.1/user.json"; //user streams
 
 const char twt_update_url[] = "https://api.twitter.com/1.1/statuses/update.json"; //write tweets
 
@@ -64,7 +65,7 @@ int load_timeline_base(struct btree* timeline, enum timelinetype tt, struct t_ac
 
     lprintf("Received a reply.\n");
 
-    parse_timeline(timeline, tt, reply, acct);
+    parse_timeline(timeline, reply, acct);
 
     if (cb) cb(0,0,cbctx);
 
@@ -119,63 +120,6 @@ int load_timeline2(struct btree* timeline, struct t_account* acct, struct timeli
 
     return r;
 }
-/*
-int load_timeline_ext(struct btree* timeline, struct t_account* acct, enum timelinetype tt, uint64_t userid, char* customtype, int since_id, int max_id, int count, int trim_user, int exclude_replies, int contributor_details, int include_entities, tl_loaded_cb cb, void* cbctx) {
-
-    char *baseurl = NULL;
-
-    switch(tt) {
-	case home:
-	    baseurl = strdup(twt_hometl_url);
-	    break;
-	case user:
-	    baseurl = strdup(twt_usertl_url);
-	    if (userid != 0) {
-		baseurl = addparam_int(baseurl,"user_id",userid,1);
-	    } else {
-		if (customtype != NULL) baseurl = addparam(baseurl,"screen_name",customtype,1);
-	    }
-	    break;
-	case mentions:
-	    baseurl = strdup(twt_menttl_url);
-	    break;
-	case direct_messages:
-	    baseurl = strdup(twt_dirmsg_url);
-	    break;
-	case search:
-	    baseurl = strdup(twt_dirmsg_url);
-	    if (customtype != NULL) baseurl = addparam(baseurl,"q",customtype,1);
-	    break;
-	case list:
-	    baseurl = strdup(twt_listtl_url);
-	    
-    }
-
-    if (since_id) baseurl = addparam_int(baseurl,"since_id",since_id,1);
-    if (max_id) baseurl = addparam_int(baseurl,"max_id",max_id,1);
-    if (count) baseurl = addparam_int(baseurl,"count",max_id,1);
-
-    if (trim_user) baseurl = addparam(baseurl,"trim_user","1",1);
-    if (exclude_replies) baseurl = addparam(baseurl,"exclude_replies","1",1);
-    if (contributor_details) baseurl = addparam(baseurl,"contributor_details","1",1);
-    if (include_entities) baseurl = addparam(baseurl,"include_entities","1",1);
-
-    int r = load_timeline_base(timeline, tt, acct, baseurl, cb, cbctx);
-
-    free(baseurl);
-
-    return r;
-}
-int load_timeline(struct btree* timeline, struct t_account* acct, enum timelinetype tt, uint64_t userid, char* customtype, tl_loaded_cb cb, void* cbctx) {
-    return load_timeline_ext(timeline,acct,tt,userid,customtype,0,0,0,0,0,0,0,cb,cbctx);
-}
-int load_global_timeline(struct btree* timeline, enum timelinetype tt, uint64_t userid, char* customtype, tl_loaded_cb cb, void* cbctx) {
-    for (int i=0; i < acct_n; i++) {
-	if (acctlist[i]->show_in_timeline)
-	    load_timeline(timeline,acctlist[i],tt,userid,customtype,cb,cbctx);
-    }
-    return 0;    
-}*/
 
 uint64_t update_status(struct t_account* acct, char* status, uint64_t reply_id) {
 
@@ -294,6 +238,11 @@ struct streamcb_ctx {
     void* cbctx;
     int* stop;
 };
+struct _stream_handle {
+    pthread_t streamthread;
+    int stop;
+    struct streamcb_ctx* ctx;
+};
 
 size_t streamcb(char *ptr, size_t size, size_t nmemb, void *userdata) {
 
@@ -337,17 +286,11 @@ size_t streamcb(char *ptr, size_t size, size_t nmemb, void *userdata) {
 
     return (size * nmemb);
 }
-struct _stream_handle {
-    pthread_t streamthread;
-    int stop;
-    struct streamcb_ctx* ctx;
-};
-
 void* startstreaming_tfunc(void* param) {
 
     struct streamcb_ctx* ctx = (struct streamcb_ctx *)param;
 
-    char *signedurl = acct_sign_url2(twt_usrstr_url, NULL, OA_HMAC, NULL, ctx->acct);
+    char *signedurl = acct_sign_url2(twt_stream_usr_url, NULL, OA_HMAC, NULL, ctx->acct);
 
     CURL* streamcurl = curl_easy_init();
 
@@ -361,7 +304,6 @@ void* startstreaming_tfunc(void* param) {
     if (curlstatus != 0) { /* TODO error */ }
     return NULL;
 }
-
 streamhnd startstreaming(struct btree* timeline, struct t_account* acct, enum timelinetype tt, stream_cb cb, void* cbctx) {
 
     streamhnd hnd = malloc(sizeof(struct _stream_handle));
