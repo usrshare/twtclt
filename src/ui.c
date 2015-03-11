@@ -72,6 +72,7 @@ struct t_colpad { //column pad
     //int acct_id; //account id
     WINDOW* window; //pad's associated window
     int lines; //pad's height
+    time_t mtime; //last update time
 };
 
 struct t_column {
@@ -80,6 +81,8 @@ struct t_column {
     struct t_ui_timeline** tl; //timelines
 
     struct btree* padbt; //column pad btree
+
+    struct t_column* parent; //parent column
 
     int scrollback;
 
@@ -254,11 +257,17 @@ struct t_account* accounts_menu(int allow_cancel, char* custom_title) {
     if (r != UINT64_MAX) return acctlist[r]; else return NULL;
 }
 
+int describe_column (struct t_column* col, char* out, size_t maxsize) {
+
+    return 0;
+
+} 
+
 int describe_timeline (struct t_ui_timeline* tl, char* out, size_t maxsize) {
 
     switch(tl->tt) {
 	case home:
-	    snprintf(out,maxsize,"@%s: Home timeline",tl->acct->name); break;
+	    snprintf(out,maxsize,"@%s: Home",tl->acct->name); break;
 	case user:
 	    snprintf(out,maxsize,"@%s: Tweets from @???",tl->acct->name); break; //TODO user name
 	case mentions:
@@ -939,6 +948,7 @@ void rendertwt_cb(uint64_t id, void* data, void* ctx) {
 	newpad->pt = CP_TWEET;
 	newpad->cnt_id = id;
 	newpad->read = 0;
+	newpad->mtime = time(NULL);
 
 	struct t_tweet* tt = tht_search(id);
 	if (tt == NULL) return;
@@ -961,7 +971,7 @@ int compose(int column, char* textbox, size_t maxchars, size_t maxbytes) {
 
     struct t_colpad* cpad = malloc(sizeof(struct t_colpad));
 
-    cpad->pt = CP_COMPOSE; cpad->read = 1; cpad->pad_id = 0xFFFFFFFF; cpad->cnt_id = UINT64_MAX; cpad->tl = NULL; cpad->acct = get_account(cols[column]);
+    cpad->pt = CP_COMPOSE; cpad->read = 1; cpad->pad_id = 0xFFFFFFFF; cpad->cnt_id = UINT64_MAX; cpad->tl = NULL; cpad->acct = get_account(cols[column]); cpad->mtime = time(NULL);
     int composing = 1, cwlines = 0, ocwlines = 0; //compose window lines
 
     WINDOW* composepad = NULL, *ocp = NULL;
