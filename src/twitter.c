@@ -6,7 +6,7 @@
 #include <errno.h>
 #include <curl/curl.h>
 #include <time.h>
-#include <mojibake.h>
+#include <utf8proc.h>
 #include <assert.h>
 #include <pthread.h>
 

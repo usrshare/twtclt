@@ -27,18 +27,18 @@ add_executable (twtclt
 		src/ui_windows.c
 		src/utf8.c)
 
-add_library(libmojibake STATIC IMPORTED)
-SET_TARGET_PROPERTIES(libmojibake PROPERTIES
-	IMPORTED_LOCATION libmojibake/libmojibake.a)
+add_library(libutf8proc STATIC IMPORTED)
+SET_TARGET_PROPERTIES(libutf8proc PROPERTIES
+	IMPORTED_LOCATION utf8proc/libutf8proc.a)
 
-include_directories (${CMAKE_SOURCE_DIR}/libmojibake)
+include_directories (${CMAKE_SOURCE_DIR}/utf8proc)
 
 find_package(PkgConfig)
 pkg_check_modules(NCURSESW "panel ncursesw" REQUIRED)
 
 include_directories(${NCURSESW_INCLUDE_DIRS})
 
-target_link_libraries(twtclt menu ncursesw curl oauth json-c pthread libmojibake)
+target_link_libraries(twtclt menu ncursesw curl oauth json-c pthread libutf8proc)
 
 install(TARGETS twtclt
 	RUNTIME DESTINATION bin

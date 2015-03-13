@@ -1,6 +1,6 @@
 // vim: cin:sts=4:sw=4 
 
-#include <mojibake.h>
+#include <utf8proc.h>
 
 #ifndef _UTF8_H_
 #define _UTF8_H_

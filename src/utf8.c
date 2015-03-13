@@ -126,9 +126,7 @@ int utf8_wrap_text2(const char* in, char* out, size_t maxlen, uint8_t width, int
 	    column = 1; linebroken = 1;
 	}
 
-	wchar_t thiswc = (wchar_t)uc;
-
-	int ucwidth = wcwidth(thiswc);
+	int ucwidth = utf8proc_charwidth(uc);
 	//printf("Character 'U+%X' has width %d\n",thiswc,ucwidth);
 
 	if (column + ucwidth > width) { column = width;} else {
