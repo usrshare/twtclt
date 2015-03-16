@@ -112,6 +112,9 @@ int msg_window(const char* message, enum msgboxclass class, int* height, int* wi
     return 0;
 }
 
+
+
+
 uint64_t menu(const char* message, enum msgboxclass class, int choices_n, struct menuitem* choices) {
 
     int maxheight = (choices_n);
@@ -214,6 +217,53 @@ uint64_t menu(const char* message, enum msgboxclass class, int choices_n, struct
 
 
 }
+
+char* get_item_value(struct option* option) {
+
+    switch (option->type) {
+
+	case ot_static:
+	    return strdup(""); break;
+	case ot_separator:
+	    return strdup("----"); break;
+	case ot_input_int: {
+			       char intval[16];
+			       sprintf(intval,"%d",*(int*)option->vptr);
+			       return strdup(intval);
+			   }
+	case ot_input_uint64: {
+			       char intval[32];
+			       sprintf(intval,"%" PRIu64 ,*(uint64_t*)option->vptr);
+			       return strdup(intval);
+			   }
+	case ot_input_text:
+	case ot_input_utf8:
+				return strdup((char *)option->vptr);
+	case ot_checkbox: {
+			      int v = *(uint8_t*)option->vptr;
+			      char* r = (v ? "[X]" : "[ ]");
+			      return strdup(r);
+			  }
+	case ot_menu: 
+	case ot_optionmenu: {
+				return strdup(">>");
+			    }
+    }
+    return NULL;
+} 
+
+uint64_t option_menu(const char* message, enum msgboxclass class, int items_n, struct option* options) {
+
+    struct menuitem items[items_n+2];
+    char* item_values[items_n+2];
+
+    for (int i=0; i < items_n; i++) {
+	item_values[i] = get_item_value(&options[i]);
+	items[i] = (struct menuitem){.id = i, .name = item_values[i], .desc =options[i].description};
+    }	
+
+    return 0;
+} 
 
 int inputbox_utf8(const char* message, enum msgboxclass class, char* textfield, size_t maxchars, size_t maxbytes) {
 

@@ -18,6 +18,31 @@ struct menuitem {
     int disabled;
 };
 
+enum optiontype {
+
+    ot_static,
+    ot_separator,
+
+    ot_input_int,
+    ot_input_uint64,
+    ot_input_text,
+    ot_input_utf8,
+
+    ot_checkbox,
+
+    ot_menu,
+    ot_optionmenu,
+};
+
+struct option {
+    uint64_t id;
+    char* description;
+    enum optiontype type;
+    void* vptr; //pointer to appropriate item
+    size_t text_max_b; //for text fields
+    size_t text_max_c; //for text fields
+};
+
 WINDOW* titlebar; //top line
 WINDOW* colhdrs; //second line
 
