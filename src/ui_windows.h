@@ -39,7 +39,7 @@ struct option {
     char* description;
     enum optiontype type;
     void* vptr; //pointer to appropriate item
-    size_t text_max_b; //for text fields
+    size_t size; //items for ot_optionmenu, max bytes for inputboxes
     size_t text_max_c; //for text fields
 };
 

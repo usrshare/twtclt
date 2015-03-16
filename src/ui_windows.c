@@ -1,7 +1,7 @@
 // vim: cin:sts=4:sw=4 
 #include <string.h>
 #include <wchar.h>
-
+#include <assert.h>
 #include <curses.h>
 #include <menu.h>
 
@@ -252,15 +252,57 @@ char* get_item_value(struct option* option) {
     return NULL;
 } 
 
-uint64_t option_menu(const char* message, enum msgboxclass class, int items_n, struct option* options) {
+uint64_t option_menu(const char* message, enum msgboxclass class, unsigned int items_n, struct option* options) {
 
     struct menuitem items[items_n+2];
     char* item_values[items_n+2];
 
-    for (int i=0; i < items_n; i++) {
+    int menu_end = 0;
+
+    while (!menu_end) {
+
+    for (unsigned int i=0; i < items_n; i++) {
 	item_values[i] = get_item_value(&options[i]);
 	items[i] = (struct menuitem){.id = i, .name = item_values[i], .desc =options[i].description};
+	if ((options[i].type == ot_static) || (options[i].type == ot_separator)) items[i].disabled = 1;
     }	
+
+    items[items_n] = (struct menuitem) {.id = items_n, .name = "----", .desc = "--------", .disabled = 1};
+    items[items_n+1] = (struct menuitem) {.id = UINT64_MAX, .name = "<<", .desc = "Back", .disabled = 0};
+   
+    uint64_t r = menu(message,class,items_n+2,items);
+
+    struct option* curopt = NULL;
+    
+    if (r < items_n) curopt = &(options[r]);
+    
+    switch(curopt->type) {
+
+	case ot_input_int:
+	case ot_input_uint64:
+	   beep();
+	   break; 
+	case ot_input_text:
+	   inputbox("Set the option value, please.",msg_info,(char*)curopt->vptr,curopt->size); break;
+	case ot_input_utf8:
+	   inputbox_utf8("Set the option value, please.",msg_info,(char*)curopt->vptr,curopt->text_max_c,curopt->size); break;
+	case ot_checkbox: {
+			      uint8_t v = *(uint8_t *)curopt->vptr;
+			      v = (v ? 0 : 1);
+			      *(uint8_t *)curopt->vptr = v;
+			      break;
+			  }
+	case ot_optionmenu: {
+				uint64_t r2 = option_menu(message,class,curopt->size,(struct option*)curopt->vptr);
+				if (r2 != UINT64_MAX) menu_end = 1;
+				break;
+		      }
+    }
+
+    if (r == UINT64_MAX) menu_end = 1;
+
+    for (unsigned int i=0; i < items_n; i++) free(item_values[i]);
+    }
 
     return 0;
 } 
@@ -284,7 +326,7 @@ int inputbox_utf8(const char* message, enum msgboxclass class, char* textfield, 
     wint_t widetext[maxchars+1]; 
     int32_t wtext32[maxchars+1];
 
-    int ul=0;
+    ssize_t ul=0; size_t uul=0;
 
     do {
    
@@ -300,9 +342,11 @@ int inputbox_utf8(const char* message, enum msgboxclass class, char* textfield, 
 
     ul = utf8proc_reencode(wtext32,wintstrlen(wtext32),UTF8PROC_STRIPCC | UTF8PROC_COMPOSE);
 
-    if (ul > maxbytes) { beep(); }
+    assert (ul >= 0); uul = (size_t) ul; //unsigned ul
 
-    } while (ul > maxbytes);
+    if (uul > maxbytes) { beep(); }
+
+    } while (uul > maxbytes);
 
     strcpy(textfield,(char*)wtext32);
 
@@ -359,8 +403,6 @@ int msgbox(char* message, enum msgboxclass class, int buttons_n, char** btntext)
 	for (int i=0; i<buttons_n; i++) maxbtnwidth += 1 + strlen(btntext[i]) + 1; //[button]
 
     int h=1;
-
-    int mh=0, mw=0;
 
     WINDOW *msgwin, *textwin, *cntwin;
 
