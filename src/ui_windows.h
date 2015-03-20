@@ -52,6 +52,7 @@ WINDOW* statusbar; //bottom line
 WINDOW* inputbar; //bottom right space
 
 uint64_t menu(const char* message, enum msgboxclass class, int choices_n, struct menuitem* choices);
+uint64_t option_menu(const char* message, enum msgboxclass class, unsigned int items_n, struct option* options);
 int inputbox(const char* message, enum msgboxclass class, char* textfield, size_t textsize);
 int inputbox_utf8(const char* message, enum msgboxclass class, char* textfield, size_t maxchars, size_t maxbytes);
 int msgbox(char* message, enum msgboxclass class, int buttons_n, char** btntext);

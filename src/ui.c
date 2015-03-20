@@ -518,6 +518,29 @@ void uistreamcb(uint64_t id, void* cbctx) {
 }
 
 
+void ui_testOptionMenu() {
+
+    uint8_t a; int b; uint64_t c;
+    char d[32];
+
+    struct option oi[] = {
+	{.type = ot_checkbox, .description = "Boolean value in A", .vptr = &a},
+	{.type = ot_input_int, .description = "Int value in B", .vptr = &b},
+	{.type = ot_input_uint64,.description = "uint64_t value in C", .vptr = &c},
+	{.type = ot_input_utf8, .description = "String in d", .vptr = d, .size=32, .text_max_c = 16},
+    };
+
+    option_menu("test option menu", msg_info, sizeof(oi) / sizeof(*oi),oi);
+
+    char t[128];
+    snprintf(t,128,"%d, %d, %" PRIu64" and %s",a,b,c,d);
+
+    msgbox(t,msg_warning,0,0);
+
+    return;
+}
+
+
 struct menuitem optionItems[] = {
 
     {   1,"Accounts...","Add, delete and manage your Twitter accounts.",0},
@@ -527,29 +550,28 @@ struct menuitem optionItems[] = {
 
 };
 
-char* twtclt_about = \
+char* twtclt_about = 
+"twtclt - a curses-based Twitter client\n"
+"(c) 2014-2015 usr_share and twtclt contributors\n"
+"(http://github.com/usrshare/twtclt/)\n"
+"\n";
 
-    "twtclt - a curses-based Twitter client\n"
-    "(c) 2014-2015 usr_share and twtclt contributors\n"
-    "(http://github.com/usrshare/twtclt/)\n"
-    "\n";
 
+int ui_optionsScreen() { 
+    uint64_t r = menu("twtclt Option Menu",msg_info,sizeof(optionItems) / sizeof(*optionItems),optionItems);
 
-    int ui_optionsScreen() { 
-	uint64_t r = menu("twtclt Option Menu",msg_info,sizeof(optionItems) / sizeof(*optionItems),optionItems);
+    switch(r) {
+	case 1:
+	case 2:
+	    msgbox("This menu item has not been implemented yet.",msg_warning,0,0);
+	    break;
 
-	switch(r) {
-	    case 1:
-	    case 2:
-		msgbox("This menu item has not been implemented yet.",msg_warning,0,0);
-		break;
-
-	    case 7:
-		msgbox(twtclt_about,msg_info,0,0);
-		break;
-	}
-	return 0;
+	case 7:
+	    msgbox(twtclt_about,msg_info,0,0);
+	    break;
     }
+    return 0;
+}
 
 void* uiupdfunc(void* param) {
 
@@ -666,10 +688,13 @@ void* uithreadfunc(void* param) {
 			  draw_all_columns();
 			  break; }
 	    case 'b': {
-			  // Load timeline. Tweets will be added.
-			  int r = msgbox("Lol.",msg_info,2,okcanc);
-			  if (r) msgbox("Option 2?",msg_error,0,NULL);
+			  // load timeline. tweets will be added.
+			  int r = msgbox("lol.",msg_info,2,okcanc);
+			  if (r) msgbox("option 2?",msg_error,0,NULL);
 			  draw_all_columns();
+			  break; }
+	    case 'p': {
+			  ui_testOptionMenu();
 			  break; }
 	    case 'm': {
 
@@ -681,22 +706,22 @@ void* uithreadfunc(void* param) {
 		      break;
 
 	    case 's': {
-			      struct t_ui_timeline* tl = timelines_menu(cols[cur_col],1,"Please select a timeline to enable/disable streaming for.");
-			      if (tl != NULL) {
+			  struct t_ui_timeline* tl = timelines_menu(cols[cur_col],1,"Please select a timeline to enable/disable streaming for.");
+			  if (tl != NULL) {
 
-				  //enable streaming on this timeline
+			      //enable streaming on this timeline
 
-				  if (tl->stream == NULL) {
-				      struct uicbctx* sc = malloc(sizeof(struct uicbctx));
-				      sc->col = cols[cur_col];
-				      sc->tl = tl;
+			      if (tl->stream == NULL) {
+				  struct uicbctx* sc = malloc(sizeof(struct uicbctx));
+				  sc->col = cols[cur_col];
+				  sc->tl = tl;
 
-				      tl->stream = startstreaming(tl->bt,tl->acct,tl->param.tt,uistreamcb,sc); } else {
-					  stopstreaming(tl->stream);
-					  tl->stream = 0;
+				  tl->stream = startstreaming(tl->bt,tl->acct,tl->param.tt,uistreamcb,sc); } else {
+				      stopstreaming(tl->stream);
+				      tl->stream = 0;
 
-				      }
-			      }
+				  }
+			  }
 			  draw_all_columns();
 			  break; }
 	    case 'i':
@@ -880,7 +905,7 @@ pthread_t* init_ui(){
 
     init_pair(17,whitecolor, twtcolor2); //compose bg 1
     init_pair(18,whitecolor, twtcolor); //compose bg 2
-    
+
     init_pair(19,COLOR_GREEN,bgcolor);    //retweet unselected
     init_pair(20,COLOR_GREEN,selbgcolor); //retweet selected
 
@@ -1419,7 +1444,7 @@ WINDOW* tweetpad(struct t_tweet* tweet, int* linecount, int selected) {
 
 	wattroff(tp,graytype);
     }
-    
+
     int sl = (tweet->retweeted_status_id ? 2 : 1);
 
     if (COLORS > 16) wattron(tp,A_BOLD);
@@ -1435,7 +1460,7 @@ WINDOW* tweetpad(struct t_tweet* tweet, int* linecount, int selected) {
     mvwaddstr(textpad,0,0,tweettext);
 
     wmove(tp, lines-1,1);
-	
+
     wattron(tp,graytype);
 
     if (tweet->retweet_count) {
@@ -1448,7 +1473,7 @@ WINDOW* tweetpad(struct t_tweet* tweet, int* linecount, int selected) {
 	wprintw(tp,"%'" PRIu64 " FAV  ",tweet->favorite_count);
 	if (tweet->favorited) wattroff(tp, (selected ? CP_FAVSEL : CP_FAV));
     }
-	
+
     wattroff(tp,graytype);
 
     touchwin(tp);
