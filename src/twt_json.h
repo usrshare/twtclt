@@ -16,6 +16,8 @@ uint64_t parse_json_tweet(json_object* tweet, int perspectival, struct t_account
 uint64_t parse_single_tweet(char* timelinereply, struct t_account* acct);
 uint64_t parse_single_user(char* timelinereply, struct t_account* acct);
 
+char* parse_entities(const char* orig_text, int entity_n, struct t_entity** entities);
+
 typedef void (*stream_cb) (uint64_t id, void* ctx);
 
 uint64_t parsestreamingmsg(struct t_account* acct, char *msg, size_t msgsize);

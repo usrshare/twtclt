@@ -1351,13 +1351,21 @@ WINDOW* render_compose_pad(char* text, struct t_tweet* respond_to, struct t_acco
 
     return tp;
 }
+
+WINDOW* userpad(struct t_user* user, int* linecount, int selected) {
+    if (user == NULL) return NULL;
+    char tweettext[640];
+
+    return NULL;
+}
+
 WINDOW* tweetpad(struct t_tweet* tweet, int* linecount, int selected) {
     if (tweet == NULL) return NULL;
     char tweettext[640];
 
     struct t_tweet* ot = (tweet->retweeted_status_id ? tht_search(tweet->retweeted_status_id) : tweet ); //original tweet
 
-    char* text = parse_tweet_entities(ot);
+    char* text = parse_entities(ot->text, ot->entity_count, ot->entities);
 
     struct t_user* rtu = uht_search(ot->user_id);
 

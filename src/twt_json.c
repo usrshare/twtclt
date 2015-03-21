@@ -53,7 +53,7 @@ struct t_entity* get_entity(json_object* entity_obj, enum entitytype et) {
     return entitydup(&entity);
 }
 
-char* parse_tweet_entities(struct t_tweet* tweet) {
+char* parse_entities(const char* orig_text, int entity_n, struct t_entity** entities) {
     //TODO this function is supposed to get a tweet and replace its content with whatever is provided by the entities so that it looks like what you'd see on the Twitter website.
 
     char* text = strdup("");
@@ -64,13 +64,13 @@ char* parse_tweet_entities(struct t_tweet* tweet) {
 
     int32_t utfchar = 0;
 
-    int i=0, charents = 0; const uint8_t* iter = (const uint8_t*)(tweet->text); int l = strlen((const char*)iter); int len = 1;
+    int i=0, charents = 0; const uint8_t* iter = (const uint8_t*)(orig_text); int l = strlen((const char*)iter); int len = 1;
 
     do {
 	len = utf8proc_iterate(iter,l,&utfchar);
 
-	for (int e=0; e < tweet->entity_count; e++) {
-	    struct t_entity* ient = tweet->entities[e];
+	for (int e=0; e < entity_n; e++) {
+	    struct t_entity* ient = entities[e];
 	    if (ient->index_s == i) {
 		charents++;
 		if (charents == 1) curent = addent = ient; else if (charents >= 2) curent = addent = NULL; //no support for multiple entities.
