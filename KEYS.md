@@ -15,7 +15,9 @@ On the main screen:
 
 - **a** allows to sign in on another Twitter account.
 
-- **i** and **t** go to compose mode.
+- **i** and **t** allow to write a new tweet (go to compose mode).
+
+- **R** (SHIFT + R) allow to respond to the selected tweet (go to compose mode).
 
 - **r** reloads timelines on all columns.
 
