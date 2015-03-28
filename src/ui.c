@@ -111,6 +111,7 @@ void draw_column2(int column, int scrollback, int do_update);
 void draw_column(int column, int scrollback);
 
 int col_id (struct t_column* col);
+int compose(int column, char* textbox, size_t maxchars, size_t maxbytes, uint64_t reply_to);
 
 void render_timeline(struct btree* timeline, struct btree* padbt);
 WINDOW* render_compose_pad(char* text, struct t_tweet* respond_to, struct t_account* acct, int* linecount, int selected, int cursor);
@@ -704,7 +705,14 @@ void* uithreadfunc(void* param) {
 		      reload_all_columns();
 		      draw_all_columns();
 		      break;
-
+	    case 'R': {
+			  if ((curtwtid != 0) && (curtwtid != UINT64_MAX)) {
+			  char newtweet[640];
+			  memset(newtweet,0,640);
+			  compose(cur_col,newtweet,140,640,curtwtid);
+			  draw_all_columns();
+			  } else beep();
+			  break; }
 	    case 's': {
 			  struct t_ui_timeline* tl = timelines_menu(cols[cur_col],1,"Please select a timeline to enable/disable streaming for.");
 			  if (tl != NULL) {
@@ -728,7 +736,7 @@ void* uithreadfunc(void* param) {
 	    case 't': {
 			  char newtweet[640];
 			  memset(newtweet,0,640);
-			  compose(cur_col,newtweet,140,640);
+			  compose(cur_col,newtweet,140,640,0);
 			  draw_all_columns();
 			  break; }
 	    case 'q': {
@@ -987,7 +995,7 @@ void rendertwt_cb(uint64_t id, void* data, void* ctx) {
     return;
 }
 
-int compose(int column, char* textbox, size_t maxchars, size_t maxbytes) {
+int compose(int column, char* textbox, size_t maxchars, size_t maxbytes, uint64_t reply_to) {
 
     struct t_colpad* cpad = malloc(sizeof(struct t_colpad));
 
@@ -996,7 +1004,9 @@ int compose(int column, char* textbox, size_t maxchars, size_t maxbytes) {
 
     WINDOW* composepad = NULL, *ocp = NULL;
 
-    bt_insert(cols[column]->padbt,UINT64_MAX,cpad);
+    uint64_t pad_id = (reply_to ? reply_to-1 : UINT64_MAX);
+
+    bt_insert(cols[column]->padbt,pad_id,cpad);
 
     int curpos = 0;
 
@@ -1005,6 +1015,11 @@ int compose(int column, char* textbox, size_t maxchars, size_t maxbytes) {
     composepad = render_compose_pad(textbox, NULL, cpad->acct, &cwlines, 1, curpos);
     cpad->lines = cwlines;
     cpad->window = composepad;
+    
+    int oldscrollback = cols[column]->scrollback;
+
+    scrolltotwt(cols[column],pad_id);
+
     draw_column(column,0);
 
     while (composing) {
@@ -1027,7 +1042,7 @@ int compose(int column, char* textbox, size_t maxchars, size_t maxbytes) {
 			     break; }
 		case 20:   //CTRL+t
 		case 23: { //CTRL+w, write tweet
-			     uint64_t tid = update_status(cpad->acct, textbox, 0);
+			     uint64_t tid = update_status(cpad->acct, textbox, reply_to);
 			     if (tid) composing = 0; else msgbox ("Some error happened while sending this tweet.\n",msg_error,0,NULL);
 			     break; }
 		case 27: //escape
@@ -1089,7 +1104,9 @@ int compose(int column, char* textbox, size_t maxchars, size_t maxbytes) {
 
     if (composepad) { delwin(composepad); composepad = NULL; }
 
-    bt_remove(cols[column]->padbt,UINT64_MAX);
+    bt_remove(cols[column]->padbt,pad_id);
+    
+    cols[column]->scrollback = oldscrollback;
 
     draw_column(column,cols[column]->scrollback);
 
