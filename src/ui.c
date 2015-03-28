@@ -113,6 +113,8 @@ void draw_column(int column, int scrollback);
 int col_id (struct t_column* col);
 int compose(int column, char* textbox, size_t maxchars, size_t maxbytes, uint64_t reply_to);
 
+int get_response_text(uint64_t tweet, char* out, size_t maxlen);
+
 void render_timeline(struct btree* timeline, struct btree* padbt);
 WINDOW* render_compose_pad(char* text, struct t_tweet* respond_to, struct t_account* acct, int* linecount, int selected, int cursor);
 void render_column(struct t_column* column);
@@ -1006,7 +1008,7 @@ int compose(int column, char* textbox, size_t maxchars, size_t maxbytes, uint64_
 
     WINDOW* composepad = NULL, *ocp = NULL;
     
-    if (reply_to) get_response_text(cpad->acct,reply_to,textbox,maxbytes); 
+    if (reply_to) get_response_text(reply_to,textbox,maxbytes); 
 
     bt_insert(cols[column]->padbt,pad_id,cpad);
 
@@ -1314,7 +1316,7 @@ int col_id (struct t_column* col) {
     return -1;
 }
 
-int get_response_text(struct t_account* acct, uint64_t tweet, char* out, size_t maxlen) {
+int get_response_text(uint64_t tweet, char* out, size_t maxlen) {
 
     char res[maxlen]; res[0] = 0; size_t cleft = maxlen-1;
 
@@ -1339,7 +1341,7 @@ int get_response_text(struct t_account* acct, uint64_t tweet, char* out, size_t 
 	    char screenname[16];
 	    sscanf(txt,"@%16[A-Za-z0-9_]",screenname);
 
-	    if ((acct == NULL) || (strcmp(screenname,acct->name) != 0)) {
+	    if ((tt->acct == NULL) || (strcmp(screenname,tt->acct->name) != 0)) {
 
 	    strndcat(res,"@",&cleft);
 	    strndcat(res,screenname,&cleft);
