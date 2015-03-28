@@ -1339,7 +1339,7 @@ int get_response_text(struct t_account* acct, uint64_t tweet, char* out, size_t 
 	    char screenname[16];
 	    sscanf(txt,"@%16[A-Za-z0-9_]",screenname);
 
-	    if (strcmp(screenname,acct->name) != 0) {
+	    if ((acct == NULL) || (strcmp(screenname,acct->name) != 0)) {
 
 	    strndcat(res,"@",&cleft);
 	    strndcat(res,screenname,&cleft);
