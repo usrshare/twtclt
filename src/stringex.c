@@ -3,6 +3,16 @@
 #include <string.h>
 #include "stringex.h"
 
+int strndcat(char* dest, char* src, size_t* left) {
+
+    size_t ss = strlen(src);
+    if (ss > ((*left)-1)) ss = ((*left)-1);
+
+    strncat(dest,src,ss);
+    *left -= ss;
+    return 0;
+}
+
 char* strrecat(char* orig, const char* append) {
     char* new = realloc(orig,strlen(orig) + strlen(append) + 1);
     new = strcat(new,append);

@@ -287,3 +287,22 @@ int utf8_delete_char(uint8_t* s, size_t maxsz, int position) {
 
     return 0;
 }
+
+char* utf8_next_word(uint8_t* text) {
+
+    ssize_t r =0;
+    char* itext = text; int32_t uc = 0; ssize_t sl = strlen(text);
+
+    char* space = NULL;
+
+    do {
+	r = utf8proc_iterate(itext,sl,&uc);
+
+
+	sl -= r;
+	itext += r;
+	if ((utf8char_in_set(uc,spaces) != -1) || (utf8char_in_set(uc,linebreaks) != -1)) space = itext;
+    } while ((r > 0) && (*itext != 0) && (space == NULL));
+
+    if (*itext == 0) return NULL; else return space;
+}

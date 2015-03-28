@@ -36,4 +36,6 @@ int utf8_remove_last(char* text);
 int utf8_insert_char(uint8_t* s, size_t maxsz, int position, int32_t uc);
 int utf8_delete_char(uint8_t* s, size_t maxsz, int position);
 
+char* utf8_next_word(uint8_t* text);
+
 #endif

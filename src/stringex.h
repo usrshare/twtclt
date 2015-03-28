@@ -5,6 +5,7 @@
 #include <string.h>
 #include <malloc.h>
 
+int strndcat(char* dest, char* src, size_t* left);
 char* strrecat(char* orig, const char* append);
 char* strnrecat(char* orig, const char* append, size_t n);
 char* addparam(char* orig, const char* parname, const char* parvalue, int addq);

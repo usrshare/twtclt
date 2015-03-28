@@ -1005,11 +1005,12 @@ int compose(int column, char* textbox, size_t maxchars, size_t maxbytes, uint64_
     int composing = 1, cwlines = 0, ocwlines = 0; //compose window lines
 
     WINDOW* composepad = NULL, *ocp = NULL;
-
+    
+    if (reply_to) get_response_text(cpad->acct,reply_to,textbox,maxbytes); 
 
     bt_insert(cols[column]->padbt,pad_id,cpad);
 
-    int curpos = 0;
+    int curpos = utf8_count_chars(textbox);
 
     wint_t wch;
 
@@ -1311,6 +1312,52 @@ int col_id (struct t_column* col) {
 	if (cols[i] == col) return i;
 
     return -1;
+}
+
+int get_response_text(struct t_account* acct, uint64_t tweet, char* out, size_t maxlen) {
+
+    char res[maxlen]; res[0] = 0; size_t cleft = maxlen-1;
+
+    struct t_tweet* tt = tht_search(tweet);
+
+    if (tt == NULL) return 1;
+    
+    struct t_user* tu = uht_search(tt->user_id);
+
+    if (tu == NULL) { tweetdel(tt); return 1; }
+    
+    strndcat(res,"@",&cleft);
+    strndcat(res,tu->screen_name,&cleft);
+    strndcat(res," ",&cleft);
+
+    char* txt = tt->text; 
+
+    while (txt != NULL) {
+
+	if (txt[0] == '@') {
+
+	    char screenname[16];
+	    sscanf(txt,"@%16[A-Za-z0-9_]",screenname);
+
+	    if (strcmp(screenname,acct->name) != 0) {
+
+	    strndcat(res,"@",&cleft);
+	    strndcat(res,screenname,&cleft);
+	    strndcat(res," ",&cleft);
+	    
+	    }
+
+	}
+
+	txt = utf8_next_word(txt);
+    }
+
+    strncat(out,res,maxlen);
+
+    tweetdel(tt);
+    userdel(tu);
+
+    return 0;
 }
 
 WINDOW* render_compose_pad(char* text, struct t_tweet* respond_to, struct t_account* acct, int* linecount, int selected, int cursor) {
