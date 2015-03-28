@@ -998,13 +998,14 @@ void rendertwt_cb(uint64_t id, void* data, void* ctx) {
 int compose(int column, char* textbox, size_t maxchars, size_t maxbytes, uint64_t reply_to) {
 
     struct t_colpad* cpad = malloc(sizeof(struct t_colpad));
+    
+    uint64_t pad_id = (reply_to ? reply_to-1 : UINT64_MAX);
 
-    cpad->pt = CP_COMPOSE; cpad->read = 1; cpad->pad_id = 0xFFFFFFFF; cpad->cnt_id = UINT64_MAX; cpad->tl = NULL; cpad->acct = get_account(cols[column]); cpad->mtime = time(NULL);
+    cpad->pt = CP_COMPOSE; cpad->read = 1; cpad->pad_id = 0xFFFFFFFF; cpad->cnt_id = reply_to; cpad->tl = NULL; cpad->acct = get_account(cols[column]); cpad->mtime = time(NULL);
     int composing = 1, cwlines = 0, ocwlines = 0; //compose window lines
 
     WINDOW* composepad = NULL, *ocp = NULL;
 
-    uint64_t pad_id = (reply_to ? reply_to-1 : UINT64_MAX);
 
     bt_insert(cols[column]->padbt,pad_id,cpad);
 
@@ -1019,8 +1020,7 @@ int compose(int column, char* textbox, size_t maxchars, size_t maxbytes, uint64_
     int oldscrollback = cols[column]->scrollback;
 
     scrolltotwt(cols[column],pad_id);
-
-    draw_column(column,0);
+    draw_column(column,cols[column]->scrollback);
 
     while (composing) {
 
@@ -1099,7 +1099,8 @@ int compose(int column, char* textbox, size_t maxchars, size_t maxbytes, uint64_
 	cpad->window = composepad;
 	if (ocp) { delwin(ocp); ocp = NULL; }
 
-	draw_column(column,0);
+	scrolltotwt(cols[column],pad_id);
+	draw_column(column,cols[column]->scrollback);
     }
 
     if (composepad) { delwin(composepad); composepad = NULL; }
