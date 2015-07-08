@@ -308,7 +308,7 @@ struct t_ui_timeline* timelines_menu (struct t_column* col, int allow_cancel, ch
 int draw_column_headers() {
     for (int i=leftmostcol; i < min(leftmostcol + visiblecolumns,MAXCOLUMNS); i++) {
 
-	if (cols[i]->enabled) {
+	if ((cols[i]) && (cols[i]->enabled)) {
 
 	    //draw_column(i,colset[i].scrollback,columns[i]);
 
