@@ -886,10 +886,10 @@ pthread_t* init_ui(){
     whitecolor = (COLORS > 16) ? 231 : COLOR_WHITE; //256col white.
     twtcolor = (COLORS > 16) ? 111 : COLOR_CYAN; //twitter logo color
     twtcolor2 = (COLORS > 16) ? 68 : COLOR_BLUE; //twitter logo color, darker
-    bgcolor = (COLORS > 16) ? 231 : COLOR_YELLOW; //background color
+    bgcolor = (COLORS > 16) ? 231 : COLOR_WHITE; //background color
     selbgcolor = (COLORS > 16) ? 253 : COLOR_WHITE; //selected bg color
     hdrcolor = (COLORS > 16) ? 254 : COLOR_WHITE; //header bg color
-    gray1 = (COLORS > 16) ? 245 : COLOR_BLACK + 8; //roughly equiv to #888888
+    gray1 = (COLORS > 16) ? 245 : ((COLORS > 8) ? COLOR_BLACK + 8 : COLOR_CYAN ); //roughly equiv to #888888
 
     init_pair(15,whitecolor,blackcolor); //background
     bkgdset(CP_BG); 
@@ -1480,6 +1480,8 @@ WINDOW* tweetpad(struct t_tweet* tweet, int* linecount, int selected) {
 
     chtype bkgtype = ( selected ? CP_CARDSEL : CP_CARD );
     chtype graytype = ( selected ? CP_GRAYSEL : CP_GRAY );
+
+    if (selected && (COLORS <= 8)) { bkgtype |= A_BOLD; graytype |= A_BOLD;}
 
     wbkgd(tp,bkgtype);
 
