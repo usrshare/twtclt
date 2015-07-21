@@ -16,7 +16,7 @@
 
 #include "ui_windows.h"
 
-
+#define MINCOLWIDTH 30
 #define COLHEIGHT (LINES-3)
 
 typedef uint32_t colpad_id;
@@ -24,7 +24,7 @@ typedef uint32_t colpad_id;
 char* okcanc[] = {"OK","Cancel"};
 char* yesno[] = {"Yes","No"};
 
-uint8_t colwidth = 40; //default width, may be larger
+uint8_t colwidth = 30; //default width, may be larger
 uint8_t visiblecolumns = 1; //how many columns are visible side by side
 uint8_t leftmostcol = 0; //leftmost visible column
 
@@ -866,7 +866,7 @@ pthread_t* init_ui(){
 	exit(1);
     }
 
-    colwidth = findcolwidth(40);
+    colwidth = findcolwidth(MINCOLWIDTH);
 
     for (int i=0; i<MAXCOLUMNS; i++) {
 	_cols[i].enabled = 0;
@@ -888,8 +888,8 @@ pthread_t* init_ui(){
     twtcolor2 = (COLORS > 16) ? 68 : COLOR_BLUE; //twitter logo color, darker
     bgcolor = (COLORS > 16) ? 231 : COLOR_WHITE; //background color
     selbgcolor = (COLORS > 16) ? 253 : COLOR_WHITE; //selected bg color
-    hdrcolor = (COLORS > 16) ? 254 : COLOR_WHITE; //header bg color
-    gray1 = (COLORS > 16) ? 245 : ((COLORS > 8) ? COLOR_BLACK + 8 : COLOR_CYAN ); //roughly equiv to #888888
+    hdrcolor = (COLORS > 16) ? 254 : ((COLORS > 8) ? COLOR_WHITE : COLOR_CYAN); //header bg color
+    gray1 = (COLORS > 16) ? 245 : ((COLORS > 8) ? COLOR_BLACK + 8 : COLOR_BLUE ); //roughly equiv to #888888
 
     init_pair(15,whitecolor,blackcolor); //background
     bkgdset(CP_BG); 
