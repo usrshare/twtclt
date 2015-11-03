@@ -898,7 +898,7 @@ pthread_t* init_ui(){
     init_pair(2,COLOR_YELLOW,COLOR_BLUE); //bars
     init_pair(3,blackcolor,bgcolor); //cards
     init_pair(4,COLOR_GREEN,bgcolor); //retweet indication
-    init_pair(5,COLOR_YELLOW,bgcolor); //fave indication
+    init_pair(5,COLOR_RED,bgcolor); //like indication
     init_pair(6,COLOR_BLUE,bgcolor); //mention indication
     init_pair(7,gray1,bgcolor); //grayed out text
 
@@ -919,8 +919,8 @@ pthread_t* init_ui(){
     init_pair(19,COLOR_GREEN,bgcolor);    //retweet unselected
     init_pair(20,COLOR_GREEN,selbgcolor); //retweet selected
 
-    init_pair(21,COLOR_YELLOW,bgcolor);    //fave unselected
-    init_pair(22,COLOR_YELLOW,selbgcolor); //fave selected
+    init_pair(21,COLOR_RED,bgcolor);    //like unselected
+    init_pair(22,COLOR_RED,selbgcolor); //like selected
 
 
     keypad(stdscr, TRUE);
@@ -1547,7 +1547,7 @@ WINDOW* tweetpad(struct t_tweet* tweet, int* linecount, int selected) {
     }
     if (tweet->favorite_count) {
 	if (tweet->favorited) wattron(tp, (selected ? CP_FAVSEL : CP_FAV));
-	wprintw(tp,"%'" PRIu64 " FAV  ",tweet->favorite_count);
+	wprintw(tp,"%'" PRIu64 "♥ ",tweet->favorite_count);
 	if (tweet->favorited) wattroff(tp, (selected ? CP_FAVSEL : CP_FAV));
     }
 
